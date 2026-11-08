@@ -42,7 +42,47 @@ TASK_QUERY = "RETRIEVAL_QUERY"
 # --- Gemini embeddings ------------------------------------------------------------------
 
 
-def get_embeddings(settings: Settings, api_key: str, task_type: str) -> Embeddings:
+def is_daily_quota(exc: Exception) -> bool:
+    """A per-day free-tier quota error: waiting does not help, switching project keys does."""
+    text = str(exc)
+    return ("429" in text or "RESOURCE_EXHAUSTED" in text) and (
+        "per day" in text.lower() or "PerDay" in text
+    )
+
+
+class FailoverEmbeddings(Embeddings):
+    """Round-robin-on-failure over several embeddings clients (one per API key).
+
+    Only a *daily* quota error moves to the next client; per-minute limits are retried by
+    the callers. Once switched, it stays on the new client for the process lifetime."""
+
+    def __init__(self, clients: list[Embeddings]) -> None:
+        if not clients:
+            raise ValueError("at least one embeddings client is required")
+        self.clients = clients
+        self.index = 0
+
+    def _call(self, method: str, *args: Any) -> Any:
+        while True:
+            try:
+                return getattr(self.clients[self.index], method)(*args)
+            except Exception as exc:
+                if is_daily_quota(exc) and self.index + 1 < len(self.clients):
+                    self.index += 1
+                    log.warning(
+                        "[embed] daily quota hit; switching to backup key #%d", self.index + 1
+                    )
+                    continue
+                raise
+
+    def embed_query(self, text: str) -> list[float]:
+        return self._call("embed_query", text)
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return self._call("embed_documents", texts)
+
+
+def get_embeddings(settings: Settings, api_key: str | list[str], task_type: str) -> Embeddings:
     """A Gemini embeddings client for one role (documents or queries).
 
     Asymmetric retrieval: the index is built with RETRIEVAL_DOCUMENT and searched with
@@ -53,12 +93,17 @@ def get_embeddings(settings: Settings, api_key: str, task_type: str) -> Embeddin
     """
     from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-    return GoogleGenerativeAIEmbeddings(
-        model=settings.embedding_model,
-        google_api_key=api_key,
-        output_dimensionality=settings.embedding_dim,
-        task_type=task_type,
-    )
+    keys = [api_key] if isinstance(api_key, str) else list(api_key)
+    clients: list[Embeddings] = [
+        GoogleGenerativeAIEmbeddings(
+            model=settings.embedding_model,
+            google_api_key=key,
+            output_dimensionality=settings.embedding_dim,
+            task_type=task_type,
+        )
+        for key in keys
+    ]
+    return clients[0] if len(clients) == 1 else FailoverEmbeddings(clients)
 
 
 class CachedQueryEmbeddings(Embeddings):
@@ -109,7 +154,7 @@ class CachedQueryEmbeddings(Embeddings):
         return [self.embed_query(t) for t in texts]
 
 
-def get_query_embeddings(settings: Settings, api_key: str) -> Embeddings:
+def get_query_embeddings(settings: Settings, api_key: str | list[str]) -> Embeddings:
     """The query-side embedder every consumer should use: Gemini + persistent cache."""
     return CachedQueryEmbeddings(
         get_embeddings(settings, api_key, TASK_QUERY),

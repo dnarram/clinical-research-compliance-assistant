@@ -13,7 +13,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.vectorstores import VectorStore
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
-from compliance_assistant.config import Settings, load_api_key, load_settings
+from compliance_assistant.config import Settings, load_api_keys, load_settings
 from compliance_assistant.demo_cache import CachedAnswer, DemoCache
 from compliance_assistant.graph import _text, build_graph
 from compliance_assistant.memory import new_thread_config
@@ -22,14 +22,44 @@ from compliance_assistant.retrieval import Source
 log = logging.getLogger(__name__)
 
 
-def make_llm(settings: Settings, api_key: str) -> BaseChatModel:
+class FailoverChatModel(BaseChatModel):
+    """Delegates to the first chat model; moves to the next one on a daily-quota error."""
+
+    models: list[BaseChatModel]
+    index: int = 0
+
+    def _generate(self, messages: list[BaseMessage], stop=None, run_manager=None, **kwargs: Any):
+        from compliance_assistant.vectorstore import is_daily_quota
+
+        while True:
+            try:
+                return self.models[self.index]._generate(
+                    messages, stop=stop, run_manager=run_manager, **kwargs
+                )
+            except Exception as exc:
+                if is_daily_quota(exc) and self.index + 1 < len(self.models):
+                    self.index += 1
+                    log.warning(
+                        "[llm] daily quota hit; switching to backup key #%d", self.index + 1
+                    )
+                    continue
+                raise
+
+    @property
+    def _llm_type(self) -> str:
+        return "failover"
+
+
+def make_llm(settings: Settings, api_key: str | list[str]) -> BaseChatModel:
     from langchain_google_genai import ChatGoogleGenerativeAI
 
-    kwargs: dict[str, Any] = {"model": settings.llm_model, "google_api_key": api_key}
+    kwargs: dict[str, Any] = {"model": settings.llm_model}
     # Gemini 3.x models use fixed sampling defaults and warn if temperature is set.
     if not settings.llm_model.replace("models/", "").startswith("gemini-3"):
         kwargs["temperature"] = settings.llm_temperature
-    return ChatGoogleGenerativeAI(**kwargs)
+    keys = [api_key] if isinstance(api_key, str) else list(api_key)
+    models = [ChatGoogleGenerativeAI(google_api_key=key, **kwargs) for key in keys]
+    return models[0] if len(models) == 1 else FailoverChatModel(models=models)
 
 
 @dataclass
@@ -71,9 +101,9 @@ class Assistant:
         from compliance_assistant.vectorstore import build_or_load, get_query_embeddings
 
         settings = settings or load_settings()
-        api_key = load_api_key()
-        store = build_or_load(settings, get_query_embeddings(settings, api_key))
-        return cls(make_llm(settings, api_key), store, settings, **kwargs)
+        api_keys = load_api_keys()
+        store = build_or_load(settings, get_query_embeddings(settings, api_keys))
+        return cls(make_llm(settings, api_keys), store, settings, **kwargs)
 
     # --- conversation -----------------------------------------------------------------
 

@@ -19,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from compliance_assistant.config import load_api_key, load_settings
+from compliance_assistant.config import load_api_keys, load_settings
 from compliance_assistant.vectorstore import (
     TASK_DOCUMENT,
     build_kb,
@@ -50,7 +50,7 @@ def main() -> int:
     settings = load_settings()
 
     if args.rebuild_only:
-        api_key = load_api_key()  # the query embedder needs it later, not for the rebuild itself
+        api_key = load_api_keys()  # the query embedder needs it later, not for the rebuild itself
         store = rebuild_chroma(settings, get_query_embeddings(settings, api_key))
         print(
             f"Chroma collection '{settings.collection_name}' rebuilt: {store._collection.count()} chunks"
@@ -74,9 +74,9 @@ def main() -> int:
             print(f"Skipped (PDF missing): {', '.join(report.skipped)}")
         return 0
 
-    api_key = load_api_key()
+    api_key = load_api_keys()
     print(
-        f"Using embedding model {settings.embedding_model} (dim {settings.embedding_dim}); key length {len(api_key)}"
+        f"Using embedding model {settings.embedding_model} (dim {settings.embedding_dim}); {len(api_key)} key(s)"
     )
     doc_embedder = get_embeddings(settings, api_key, TASK_DOCUMENT)
     report = build_kb(settings, doc_embedder, doc_ids=args.doc_id)

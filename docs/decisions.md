@@ -133,3 +133,11 @@ stores the scripted demo conversation (`scripts/04_cache_demo_answers.py`); with
 `OFFLINE_DEMO=1` an exact-match question is replayed without any API call and the UI
 labels it "cached". Follow-ups are keyed on the previous question so a referential turn
 replays in context. Honesty rule: the badge is always shown.
+
+## 2026-11-08 — Backup API key = second daily quota
+
+Free-tier quotas are per Google Cloud project (`…PerUserPerProjectPerModel`). A second key
+created in a *new* project doubles the daily embedding budget. `load_api_keys()` returns
+primary + `GEMINI_API_KEY_BACKUP`; `FailoverEmbeddings` / `FailoverChatModel` switch to the
+next client only on a daily-quota error (per-minute limits are retried instead). Keys are
+never logged; the build script prints only how many it has.

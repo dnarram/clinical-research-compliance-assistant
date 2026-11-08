@@ -24,7 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from compliance_assistant.config import load_api_key, load_settings
+from compliance_assistant.config import load_api_keys, load_settings
 from compliance_assistant.retrieval import cite, scored_search
 from compliance_assistant.vectorstore import build_or_load, get_query_embeddings
 
@@ -88,7 +88,7 @@ def main() -> int:
     logging.basicConfig(level=logging.WARNING)
 
     settings = load_settings()
-    vs = build_or_load(settings, get_query_embeddings(settings, load_api_key()))
+    vs = build_or_load(settings, get_query_embeddings(settings, load_api_keys()))
     print(f"Collection '{settings.collection_name}': {vs._collection.count()} chunks")
 
     if args.query:

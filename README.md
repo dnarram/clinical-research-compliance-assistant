@@ -175,7 +175,9 @@ from the committed embedding cache at first start — no embedding API calls.
 free tier (a batch of 50 chunks counts as 50): the one-time corpus build uses ~800, which is
 why the embedding cache is committed and query vectors are cached on disk
 (`data/kb/query_cache.jsonl.gz`) — repeated questions cost no embedding calls. The build
-batches 50 chunks per request, is resumable and backs off on 429. Each chat turn costs 1–2 LLM calls
+batches 50 chunks per request, is resumable and backs off on 429. A second key from another
+Google Cloud project (`GEMINI_API_KEY_BACKUP=` in `.env` / Streamlit secrets) is a second daily
+budget: clients fail over to it automatically on a daily-quota error. Each chat turn costs 1–2 LLM calls
 (`gemini-3.5-flash-lite`; the class default `gemini-2.5-flash-lite` is no longer served to
 new keys — override with `LLM_MODEL=` in `.env` if yours differs).
 

@@ -136,3 +136,18 @@ def load_api_key() -> str:
             "(or in Streamlit Cloud secrets / Colab userdata)."
         )
     return key
+
+
+def load_api_keys() -> list[str]:
+    """Primary key first, then any backup (GEMINI_API_KEY_BACKUP, comma-separated allowed).
+
+    The free tier is quota-limited per Google Cloud project, so a second key from another
+    project is a second daily budget. Clients built from this list fail over when the
+    primary returns a daily-quota error.
+    """
+    keys = [load_api_key()]
+    for extra in os.environ.get("GEMINI_API_KEY_BACKUP", "").split(","):
+        extra = extra.strip()
+        if extra and extra not in keys:
+            keys.append(extra)
+    return keys

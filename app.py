@@ -16,9 +16,10 @@ import streamlit as st
 
 # --- environment -------------------------------------------------------------------------
 # Streamlit Cloud: secrets -> environment, before the settings module reads it.
-if "GEMINI_API_KEY" not in os.environ:
-    with contextlib.suppress(KeyError, FileNotFoundError):
-        os.environ["GEMINI_API_KEY"] = st.secrets["GEMINI_API_KEY"]
+for _name in ("GEMINI_API_KEY", "GEMINI_API_KEY_BACKUP"):
+    if _name not in os.environ:
+        with contextlib.suppress(KeyError, FileNotFoundError):
+            os.environ[_name] = st.secrets[_name]
 
 # chromadb needs sqlite >= 3.35; some Linux images ship an older one. pysqlite3-binary is
 # only installed on Linux (see pyproject) and only used when needed.
