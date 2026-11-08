@@ -49,7 +49,11 @@ class DemoCache:
         """Exact match on the question; scripted follow-ups also match on the previous
         question so a referential turn gets the answer recorded in that context."""
         key = question.strip()
-        return self._items.get((previous_question.strip(), key)) or self._items.get(("", key))
+        exact = self._items.get((previous_question.strip(), key)) or self._items.get(("", key))
+        if exact is not None:
+            return exact
+        # Same question asked in a different order than recorded: any recording will do.
+        return next((item for (_, q), item in self._items.items() if q == key), None)
 
     def put(self, item: CachedAnswer) -> None:
         self._items[(item.thread_key, item.question.strip())] = item

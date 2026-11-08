@@ -254,3 +254,14 @@ def test_offline_demo_replays_cached_answers(settings: Settings, tmp_path, monke
     monkeypatch.setenv("OFFLINE_DEMO", "0")
     assistant2, llm2, _ = make_assistant(offline_settings, ["Fresh [1]."])
     assert assistant2.ask("ADR reporting timeline?").text == "Fresh [1]." and len(llm2.calls) == 1
+
+
+def test_dropped_connections_are_transient() -> None:
+    from compliance_assistant.graph import _is_transient
+
+    class RemoteProtocolError(Exception):
+        pass
+
+    assert _is_transient(RemoteProtocolError("Server disconnected without sending a response."))
+    assert _is_transient(RuntimeError("503 UNAVAILABLE"))
+    assert not _is_transient(RuntimeError("401 API key not valid"))

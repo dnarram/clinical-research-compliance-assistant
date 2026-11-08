@@ -69,5 +69,7 @@ def test_load_api_keys_dedupes_and_orders(monkeypatch) -> None:
     monkeypatch.setenv("GEMINI_API_KEY", "primary")
     monkeypatch.setenv("GEMINI_API_KEY_BACKUP", " backup , primary ,, ")
     assert load_api_keys() == ["primary", "backup"]
-    monkeypatch.delenv("GEMINI_API_KEY_BACKUP")
+    # Empty (not deleted): load_dotenv never overrides a variable already in the environment,
+    # so a real backup key in the developer's .env cannot leak into the assertion.
+    monkeypatch.setenv("GEMINI_API_KEY_BACKUP", "")
     assert load_api_keys() == ["primary"]

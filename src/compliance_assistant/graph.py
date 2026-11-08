@@ -71,7 +71,16 @@ def _is_transient(exc: Exception) -> bool:
     text = str(exc)
     if "per day" in text.lower() or "PerDay" in text:
         return False
-    return any(code in text for code in ("429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "500"))
+    if any(code in text for code in ("429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "500")):
+        return True
+    # Dropped connections and timeouts (httpx RemoteProtocolError, ConnectError, ReadTimeout).
+    name = type(exc).__name__
+    return (
+        name
+        in {"RemoteProtocolError", "ConnectError", "ReadTimeout", "ConnectTimeout", "ReadError"}
+        or "disconnected" in text.lower()
+        or "timed out" in text.lower()
+    )
 
 
 def invoke_with_retry(
