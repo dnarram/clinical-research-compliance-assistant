@@ -140,6 +140,8 @@ if question := st.chat_input("Your question (EN / ES)"):
             for s in answer.sources
         ]
         render_sources(sources)
+        if answer.cached:
+            st.caption("Cached answer (offline demo mode).")
         if not answer.grounded:
             st.caption(
                 f"No passage scored above the refusal threshold (best {answer.max_score:.2f} < {assistant.threshold})."

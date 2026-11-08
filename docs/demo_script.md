@@ -6,9 +6,11 @@ Rehearse twice with a timer. Have **three windows** open before starting: the St
 Cloud app (public URL), a local `uv run streamlit run app.py` as fallback, and the executed
 notebook (`notebooks/compliance_assistant.ipynb`) scrolled to section 6.1 (trace).
 
-Plan B, in order: local Streamlit → notebook outputs (already executed, no API needed to
-*show*) → `uv run scripts/chat.py`. If the API returns 429, wait 60 s; the free tier resets
-per minute.
+Plan B, in order: local Streamlit → `OFFLINE_DEMO=1 uv run streamlit run app.py` (replays the
+recorded script below with a "cached" badge; record it the day before with
+`scripts/04_cache_demo_answers.py`) → notebook outputs (already executed) → `scripts/chat.py`.
+Per-minute 429s are retried automatically (5/10/20 s); a *daily* quota error is not — switch
+to the backup key or offline mode.
 
 | Min | Beat | Say / do |
 |---|---|---|

@@ -91,6 +91,10 @@ class Settings:
     def query_cache_path(self) -> Path:
         return self.kb_dir / "query_cache.jsonl.gz"
 
+    @property
+    def demo_cache_path(self) -> Path:
+        return self.project_root / "data" / "demo" / "cached_answers.jsonl"
+
     def resolved_threshold(self) -> float | None:
         """The relevance gate: explicit setting, else the calibrated value, else None."""
         if self.score_threshold is not None:

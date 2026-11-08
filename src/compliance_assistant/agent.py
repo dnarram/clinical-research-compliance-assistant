@@ -9,11 +9,12 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.vectorstores import VectorStore
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from compliance_assistant.config import Settings, load_api_key, load_settings
+from compliance_assistant.demo_cache import CachedAnswer, DemoCache
 from compliance_assistant.graph import _text, build_graph
 from compliance_assistant.memory import new_thread_config
 from compliance_assistant.retrieval import Source
@@ -41,6 +42,7 @@ class Answer:
     standalone_question: str
     thread_id: str
     trace: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
+    cached: bool = False
 
     def __str__(self) -> str:
         return self.text
@@ -58,6 +60,7 @@ class Assistant:
         self.settings = settings or load_settings()
         self.threshold = threshold if threshold is not None else self.settings.resolved_threshold()
         self.vectorstore = vectorstore
+        self.demo_cache = DemoCache(self.settings.demo_cache_path)
         self.graph = build_graph(
             llm, vectorstore, self.settings, checkpointer, threshold=self.threshold
         )
@@ -81,6 +84,26 @@ class Assistant:
     def ask(self, question: str, thread_id: str | None = None, trace: bool = False) -> Answer:
         thread_id = thread_id or self.new_thread()
         config = new_thread_config(thread_id)
+        if DemoCache.enabled():
+            previous = self.history(thread_id)
+            prev_q = _text(previous[-2]) if len(previous) >= 2 else ""
+            hit = self.demo_cache.get(question, prev_q)
+            if hit is not None:
+                # Record the turn so later follow-ups in this thread still see it.
+                self.graph.update_state(
+                    config,
+                    {"messages": [HumanMessage(content=question), AIMessage(content=hit.text)]},
+                )
+                return Answer(
+                    text=hit.text,
+                    sources=[Source(**s) for s in hit.sources],
+                    grounded=hit.grounded,
+                    max_score=hit.max_score,
+                    question=question,
+                    standalone_question=hit.standalone_question,
+                    thread_id=thread_id,
+                    cached=True,
+                )
         steps: list[tuple[str, dict[str, Any]]] = []
         inputs = {"messages": [HumanMessage(content=question)]}
         if trace:
@@ -112,3 +135,17 @@ class Assistant:
     def history(self, thread_id: str) -> list[BaseMessage]:
         snapshot = self.graph.get_state(new_thread_config(thread_id))
         return list(snapshot.values.get("messages", [])) if snapshot and snapshot.values else []
+
+    def record_for_demo(self, answer: Answer, previous_question: str = "") -> None:
+        """Store an answer for OFFLINE_DEMO replay (used by scripts/04_cache_demo_answers.py)."""
+        self.demo_cache.put(
+            CachedAnswer(
+                question=answer.question,
+                text=answer.text,
+                sources=[s.__dict__ for s in answer.sources],
+                grounded=answer.grounded,
+                max_score=answer.max_score,
+                standalone_question=answer.standalone_question,
+                thread_key=previous_question.strip(),
+            )
+        )

@@ -202,3 +202,55 @@ def test_generic_fake_model_also_works(settings: Settings) -> None:
     llm = GenericFakeChatModel(messages=iter([AIMessage(content="fine [1].")]))
     ans = Assistant(llm, ScoredStore(), settings).ask("consent rules?")
     assert ans.text == "fine [1]."
+
+
+def test_invoke_with_retry_recovers_from_rate_limit_but_not_daily_quota() -> None:
+    from compliance_assistant.graph import invoke_with_retry
+
+    class Flaky(BaseChatModel):
+        errors: list[str]
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            if self.errors:
+                raise RuntimeError(self.errors.pop(0))
+            return ChatResult(generations=[ChatGeneration(message=AIMessage(content="ok"))])
+
+        @property
+        def _llm_type(self) -> str:
+            return "flaky"
+
+    waits: list[float] = []
+    llm = Flaky(errors=["429 RESOURCE_EXHAUSTED: Quota exceeded for metric requests per minute"])
+    assert invoke_with_retry(llm, [HumanMessage(content="q")], sleep=waits.append).content == "ok"
+    assert waits == [5.0]
+
+    daily = Flaky(
+        errors=["429 RESOURCE_EXHAUSTED: requests per day limit exceeded. Please retry in 22h"]
+    )
+    with pytest.raises(RuntimeError, match="per day"):
+        invoke_with_retry(daily, [HumanMessage(content="q")], sleep=waits.append)
+    assert waits == [5.0], "a daily quota error is not retried"
+
+
+def test_offline_demo_replays_cached_answers(settings: Settings, tmp_path, monkeypatch) -> None:
+    from dataclasses import replace
+
+    offline_settings = replace(settings, project_root=tmp_path)
+    assistant, llm, _ = make_assistant(offline_settings, ["Live [1]."])
+    live = assistant.ask("ADR reporting timeline?")
+    assistant.record_for_demo(live)
+    assert assistant.settings.demo_cache_path.exists()
+
+    monkeypatch.setenv("OFFLINE_DEMO", "1")
+    replay = assistant.ask("ADR reporting timeline?")
+    assert (
+        replay.cached
+        and replay.text == "Live [1]."
+        and replay.sources[0].citation == "ICH E2A §1, p.7"
+    )
+    assert len(llm.calls) == 1, "the replay made no model call"
+    assert len(assistant.history(replay.thread_id)) == 2, "the replayed turn is in the thread"
+
+    monkeypatch.setenv("OFFLINE_DEMO", "0")
+    assistant2, llm2, _ = make_assistant(offline_settings, ["Fresh [1]."])
+    assert assistant2.ask("ADR reporting timeline?").text == "Fresh [1]." and len(llm2.calls) == 1

@@ -150,6 +150,7 @@ uv run scripts/01_build_kb.py --rebuild-only
 uv run jupyter lab notebooks/compliance_assistant.ipynb   # notebook (main deliverable)
 uv run scripts/chat.py                                     # terminal
 uv run streamlit run app.py                                # web UI
+OFFLINE_DEMO=1 uv run streamlit run app.py                 # replay the recorded demo script, no API calls
 ```
 
 Rebuilding the knowledge base from the sources (optional; ~17 embedding requests):

@@ -5,18 +5,18 @@
 <p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#b35e1c">v1 · class baseline</p>
 <h3 style="font-size:32px;font-weight:600">“Answer from the documents”</h3>
 <ul style="font-size:25px;line-height:1.4;color:#4a5568">
-<li>Fluent but unattributed: 7 days and 15 days with no source</li>
-<li>Answered 21 CFR Part 50 from general knowledge, with invented citations</li>
-<li>Register drifts (“Sure! Here’s a quick overview…”)</li>
+<li>Observed: correct and fluent, but no citation markers — a CRA cannot tell which passage supports which sentence</li>
+<li>No rule for missing information: nothing stops it completing from general knowledge</li>
+<li>No role, no scope, no language policy</li>
 </ul>
 </div>
 <div style="flex:1;background:#ffffff;padding:36px;border-radius:16px;border:1px solid #dfe3e0;display:flex;flex-direction:column;gap:14px">
 <p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#b35e1c">v2 · role and scope</p>
 <h3 style="font-size:32px;font-weight:600">Audience, grounding, “I could not find this”</h3>
 <ul style="font-size:25px;line-height:1.4;color:#4a5568">
-<li>Invented citations stopped; off-topic questions declined</li>
-<li>Still merged E6(R3) and Helsinki into one claim</li>
-<li>Spanish questions answered in English half the time</li>
+<li>Adds the audience, the grounding rule and the refusal wording</li>
+<li>Still no per-sentence traceability — only a trailing sources list</li>
+<li>No rule for documents that disagree; no language policy for Spanish questions</li>
 </ul>
 </div>
 <div style="flex:1;background:#15181c;padding:36px;border-radius:16px;display:flex;flex-direction:column;gap:14px">
@@ -34,5 +34,5 @@
 <p style="font-size:27px;line-height:1.35;color:#1c2128"><b>Hard constraints in code, judgement in the prompt.</b> An English question once came back in Spanish despite the rule, so the user message now carries a deterministic “Reply in English / Responde en español” line, and out-of-domain questions never reach the model at all.</p>
 </div>
 <p style="position:absolute;left:128px;bottom:64px;font-size:24px;color:#6a7179">Full prompt and rationale: README · docs/prompt_iterations.md</p>
-<aside>The prompt went through three versions. Version one is the bare class prompt: fluent, unattributed, and it answered a question about an FDA regulation we do not index, with made-up citations. Version two added role, scope and the insufficiency rule, but still merged sources and sometimes ignored the language. Version three adds the citation protocol, differing-source handling, the language policy and the output format. One lesson: hard constraints belong in code.</aside>
+<aside>The prompt went through three versions. Version one is the bare class prompt: on the SUSAR question it was correct and fluent but carried no citation markers, so nothing tells you which passage supports which sentence, and it has no rule for missing information. Version two added role, scope and the refusal wording — a design step, still without per-sentence traceability. Version three adds the citation protocol, differing-source handling, the language policy and the output format; on the live model it cited every sentence, contrasted E6(R3) with Helsinki, and said plainly that 21 CFR Part 50 is not in its sources. One lesson: hard constraints belong in code.</aside>
 </section>

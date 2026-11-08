@@ -123,3 +123,13 @@ day's quota (429 with "retry in 22h"). Consequences and fixes:
   the presentation; a chat turn costs one embedding (if not cached) and 1–2 LLM calls.
 - Fallback: a second API key from another Google account, switched via `.env` /
   Streamlit secrets.
+
+## 2026-11-08 — Demo resilience: retry on per-minute limits, replay cache for the script
+
+`graph.invoke_with_retry` retries a model call on transient errors (per-minute 429, 5xx)
+with 5/10/20 s back-off and gives up immediately on a daily-quota error ("per day"), so
+a live demo survives a rate blip without masking a real outage. `demo_cache.DemoCache`
+stores the scripted demo conversation (`scripts/04_cache_demo_answers.py`); with
+`OFFLINE_DEMO=1` an exact-match question is replayed without any API call and the UI
+labels it "cached". Follow-ups are keyed on the previous question so a referential turn
+replays in context. Honesty rule: the badge is always shown.

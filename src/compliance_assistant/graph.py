@@ -12,6 +12,8 @@ stays small and the memory window counts turns, not passages.
 from __future__ import annotations
 
 import logging
+import time
+from collections.abc import Callable
 from dataclasses import asdict
 from typing import Any, Literal
 
@@ -63,6 +65,37 @@ def _text(message: BaseMessage) -> str:
     return "".join(part.get("text", "") for part in content if isinstance(part, dict))
 
 
+def _is_transient(exc: Exception) -> bool:
+    """Per-minute rate limits and server hiccups are worth a short retry; a daily quota
+    ("retry in 22h") or an auth/model error is not."""
+    text = str(exc)
+    if "per day" in text.lower() or "PerDay" in text:
+        return False
+    return any(code in text for code in ("429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "500"))
+
+
+def invoke_with_retry(
+    llm: BaseChatModel,
+    messages: list[BaseMessage],
+    retries: int = 3,
+    base_delay: float = 5.0,
+    sleep: Callable[[float], None] = time.sleep,
+) -> BaseMessage:
+    """`llm.invoke` with exponential back-off on transient errors (5 s, 10 s, 20 s).
+    Keeps a live demo alive through a free-tier RPM blip without hiding real failures."""
+    delay = base_delay
+    for attempt in range(retries + 1):
+        try:
+            return llm.invoke(messages)
+        except Exception as exc:
+            if attempt == retries or not _is_transient(exc):
+                raise
+            log.warning("[llm] transient error (%s); retrying in %.0fs", type(exc).__name__, delay)
+            sleep(delay)
+            delay *= 2
+    raise RuntimeError("unreachable")
+
+
 def build_graph(
     llm: BaseChatModel,
     vectorstore: VectorStore,
@@ -84,7 +117,8 @@ def build_graph(
             return {"question": question, "standalone_question": question, "language": language}
         prompt = REWRITE_PROMPT.format(history=format_history(history), question=question)
         standalone = (
-            _text(llm.invoke([HumanMessage(content=prompt)])).strip().strip('"') or question
+            _text(invoke_with_retry(llm, [HumanMessage(content=prompt)])).strip().strip('"')
+            or question
         )
         log.info("[rewrite_query] (%s) %r -> %r", language, question, standalone)
         return {"question": question, "standalone_question": standalone, "language": language}
@@ -117,7 +151,7 @@ def build_graph(
             state["question"],
             language=state.get("language", "en"),
         )
-        answer = _text(llm.invoke(prompt))
+        answer = _text(invoke_with_retry(llm, prompt))
         log.info("[generate] %d chars, %d sources", len(answer), len(state["sources"]))
         return {"messages": [AIMessage(content=answer)]}
 
