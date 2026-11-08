@@ -164,6 +164,12 @@ uv run scripts/02_sanity_retrieval.py --calibrate   # top-k inspection + refusal
 **Google Colab:** open the notebook, run the first cell (it clones and installs the repo)
 and add `GEMINI_API_KEY` under *Secrets*.
 
+**Streamlit Cloud (how the public demo is deployed):** *New app* → repository
+`dnarram/clinical-research-compliance-assistant`, branch `main`, main file `app.py`;
+*Advanced settings* → Python 3.12 and, under *Secrets*, `GEMINI_API_KEY = "..."`. The app
+installs `requirements.txt` (exported from `uv.lock`) and rebuilds the Chroma collection
+from the committed embedding cache at first start — no embedding API calls.
+
 **Free tier notes.** Embeddings ≈ 100 requests/min; the build batches 50 chunks per request,
 is resumable and backs off on 429. Each chat turn costs 1–2 LLM calls
 (`gemini-3.5-flash-lite`; the class default `gemini-2.5-flash-lite` is no longer served to
