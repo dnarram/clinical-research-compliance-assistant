@@ -90,14 +90,15 @@ class CachedQueryEmbeddings(Embeddings):
         if text in self._cache:
             self.hits += 1
             return self._cache[text]
-        vector = self.inner.embed_query(text)
+        # Rounded once so the in-memory value equals what is read back from disk.
+        vector = [round(float(x), 6) for x in self.inner.embed_query(text)]
         self.misses += 1
         self._cache[text] = vector
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with gzip.open(self.path, "at", encoding="utf-8") as fh:
             fh.write(
                 json.dumps(
-                    {"model": self.model, "text": text, "vector": [round(x, 6) for x in vector]},
+                    {"model": self.model, "text": text, "vector": vector},
                     ensure_ascii=False,
                 )
                 + "\n"
