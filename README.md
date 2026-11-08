@@ -9,7 +9,7 @@ what its knowledge base does not cover.
 Final project of the Generative AI module · Master in Data Science & AI · Evolve Academy ·
 David Naranjo Ramírez
 
-> **Live demo:** _Streamlit Cloud URL — added on deployment_ · **Notebook:** [`notebooks/compliance_assistant.ipynb`](notebooks/compliance_assistant.ipynb)
+> **Live demo:** <https://clinical-research-compliance-assistant-eaksdytvqzbpuvthkakvrd.streamlit.app> · **Notebook:** [`notebooks/compliance_assistant.ipynb`](notebooks/compliance_assistant.ipynb)
 
 ## Why this domain
 
