@@ -1,0 +1,53 @@
+<section id="architecture" data-transition="fade" style="background:#f6f7f5;color:#1c2128;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1">An explicit graph: the knowledge base is used on every query</h2>
+<div style="position:relative;height:300px;width:1664px">
+<div style="position:absolute;left:0;top:80px;width:220px;display:flex;flex-direction:column;gap:6px;align-items:center">
+<x-icon name="Chat" style="width:56px;height:56px;color:#2a6f97"></x-icon>
+<p style="font-size:26px;font-weight:600;text-align:center">question<br>EN / ES</p>
+</div>
+<div style="position:absolute;left:300px;top:60px;width:300px;background:#15181c;padding:28px;border-radius:16px;display:flex;flex-direction:column;gap:6px">
+<h3 style="font-size:30px;font-weight:600;color:#7cc5ff">rewrite_query</h3>
+<p style="font-size:24px;line-height:1.3;color:#c9d1d9">history → standalone English question</p>
+</div>
+<div style="position:absolute;left:680px;top:60px;width:300px;background:#15181c;padding:28px;border-radius:16px;display:flex;flex-direction:column;gap:6px">
+<h3 style="font-size:30px;font-weight:600;color:#7cc5ff">retrieve</h3>
+<p style="font-size:24px;line-height:1.3;color:#c9d1d9">scores → calibrated gate → MMR top-6</p>
+</div>
+<div style="position:absolute;left:1120px;top:0;width:300px;background:#2a6f97;padding:28px;border-radius:16px;display:flex;flex-direction:column;gap:6px">
+<h3 style="font-size:30px;font-weight:600;color:#f4f5f2">generate</h3>
+<p style="font-size:24px;line-height:1.3;color:#e3eef5">answer in the user’s language, [n] citations</p>
+</div>
+<div style="position:absolute;left:1120px;top:170px;width:300px;background:#d9772b;padding:28px;border-radius:16px;display:flex;flex-direction:column;gap:6px">
+<h3 style="font-size:30px;font-weight:600;color:#1c2128">refuse</h3>
+<p style="font-size:24px;line-height:1.3;color:#2b2015">“not in my knowledge base, I cover…” — no LLM call</p>
+</div>
+<div style="position:absolute;left:1500px;top:80px;width:164px;display:flex;flex-direction:column;gap:6px;align-items:center">
+<x-icon name="Verified" style="width:56px;height:56px;color:#2a6f97"></x-icon>
+<p style="font-size:26px;font-weight:600;text-align:center">answer +<br>sources</p>
+</div>
+<x-connector x1="220" y1="130" x2="300" y2="130" head="end" style="color:#4a5568;border-width:4px"></x-connector>
+<x-connector x1="600" y1="130" x2="680" y2="130" head="end" style="color:#4a5568;border-width:4px"></x-connector>
+<x-connector x1="980" y1="110" x2="1120" y2="70" head="end" style="color:#2a6f97;border-width:4px"></x-connector>
+<x-connector x1="980" y1="150" x2="1120" y2="240" head="end" style="color:#d9772b;border-width:4px"></x-connector>
+<x-connector x1="1420" y1="70" x2="1500" y2="130" head="end" style="color:#4a5568;border-width:4px"></x-connector>
+<x-connector x1="1420" y1="240" x2="1500" y2="150" head="end" style="color:#4a5568;border-width:4px"></x-connector>
+<p style="position:absolute;left:1000px;top:44px;width:120px;font-size:24px;color:#2a6f97;font-weight:600">grounded</p>
+<p style="position:absolute;left:1000px;top:200px;width:120px;font-size:24px;color:#b35e1c;font-weight:600">below gate</p>
+</div>
+<div style="display:flex;gap:32px">
+<div style="flex:1;background:#ffffff;padding:32px;border-radius:16px;border:1px solid #dfe3e0;display:flex;flex-direction:column;gap:10px">
+<h3 style="font-size:30px;font-weight:600;color:#2a6f97">Idempotent knowledge base</h3>
+<p style="font-size:25px;line-height:1.35;color:#4a5568">801 chunks, gemini-embedding-2. A versioned embedding cache + manifest: nothing is re-embedded, and Chroma rebuilds from it with zero API calls — on Streamlit Cloud too.</p>
+</div>
+<div style="flex:1;background:#ffffff;padding:32px;border-radius:16px;border:1px solid #dfe3e0;display:flex;flex-direction:column;gap:10px">
+<h3 style="font-size:30px;font-weight:600;color:#2a6f97">Calibrated refusal gate</h3>
+<p style="font-size:25px;line-height:1.35;color:#4a5568">Gemini cosine scores sit in a narrow band. The threshold (0.69) is read off in-domain vs out-of-domain queries, not guessed; MMR gives multi-document coverage.</p>
+</div>
+<div style="flex:1;background:#ffffff;padding:32px;border-radius:16px;border:1px solid #dfe3e0;display:flex;flex-direction:column;gap:10px">
+<h3 style="font-size:30px;font-weight:600;color:#2a6f97">Memory that stays small</h3>
+<p style="font-size:25px;line-height:1.35;color:#4a5568">LangGraph checkpointer per thread_id; the last 10 messages reach the model; retrieved passages live in state, not in the history.</p>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;font-size:24px;color:#6a7179">Stack: Gemini 3.5 Flash-Lite · gemini-embedding-2 · ChromaDB · LangGraph · Streamlit — github.com/dnarram/clinical-research-compliance-assistant</p>
+<aside>Why an explicit graph and not a tool-calling agent: the brief requires the knowledge base on every query, the free tier makes every extra model call expensive, and a fixed topology is easy to trace. The question is rewritten into a standalone English question, retrieval scores it and gates it, and the router sends it to generate or to a templated refusal that never touches the model. Three decisions: the versioned embedding cache, the calibrated threshold, and the memory window with context kept out of the history.</aside>
+</section>

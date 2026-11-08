@@ -1,5 +1,7 @@
 # Demo script — 5–10 minutes
 
+Slides: <https://claude.ai/artifact/FyZnhuoZ1R3cee1PtUsdgg> (7 slides; export to PPTX/PDF from its Share menu). Slide sources are kept in `docs/slides/`.
+
 Rehearse twice with a timer. Have **three windows** open before starting: the Streamlit
 Cloud app (public URL), a local `uv run streamlit run app.py` as fallback, and the executed
 notebook (`notebooks/compliance_assistant.ipynb`) scrolled to section 6.1 (trace).

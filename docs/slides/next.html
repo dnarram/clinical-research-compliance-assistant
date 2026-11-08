@@ -1,0 +1,36 @@
+<section id="next" data-transition="fade" style="background:#15181c;color:#f4f5f2;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:44px">
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#f4f5f2">What it does not do yet, and what comes next</h2>
+<div style="display:flex;gap:40px;align-items:stretch">
+<div style="flex:1;background:#1f242b;padding:40px;border-radius:16px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;gap:16px;align-items:center">
+<x-icon name="Warning" style="width:44px;height:44px;color:#f0a35c"></x-icon>
+<h3 style="font-size:34px;font-weight:600;color:#f4f5f2">Limitations</h3>
+</div>
+<ul style="font-size:27px;line-height:1.45;color:#c9d1d9">
+<li>Three documents by design: EU CTR, GVP modules and FDA rules are refused or answered only from what E6(R3) says</li>
+<li>PDF tables (essential records, Appendix C) flatten into prose</li>
+<li>The refusal gate is corpus- and model-specific: change either, recalibrate</li>
+<li>Memory lives in the process; a restart forgets the threads</li>
+<li>Free tier: 1,000 embedded texts per day — the corpus build used 800 of them once, so query vectors are cached too</li>
+</ul>
+</div>
+<div style="flex:1;background:#1f242b;padding:40px;border-radius:16px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;gap:16px;align-items:center">
+<x-icon name="Lightning" style="width:44px;height:44px;color:#7cc5ff"></x-icon>
+<h3 style="font-size:34px;font-weight:600;color:#f4f5f2">Next steps, in order of value</h3>
+</div>
+<ol style="font-size:27px;line-height:1.45;color:#c9d1d9">
+<li>EMA GVP Module VI and EU CTR 536/2014 — ingestion is per document and idempotent</li>
+<li>Hybrid retrieval (BM25 + vectors) for exact section numbers and acronyms</li>
+<li>LLM-as-judge faithfulness check on the golden set</li>
+<li>A guard_input node (prompt injection, PII) before rewrite_query</li>
+<li>SqliteSaver so conversations survive a restart</li>
+</ol>
+</div>
+</div>
+<div style="display:flex;gap:40px;align-items:center">
+<p style="font-size:30px;font-weight:600;color:#f4f5f2">Thank you — questions?</p>
+<p style="font-size:26px;color:#8b949e">github.com/dnarram/clinical-research-compliance-assistant · live app on Streamlit Cloud · regulatory information, not legal or medical advice</p>
+</div>
+<aside>What it does not do: only three documents, tables flatten, the threshold must be recalibrated when the corpus or the model changes, memory is in-process, and the free tier counts embedded texts per day. Next: the EU pharmacovigilance and clinical-trial texts, hybrid retrieval, an LLM judge on the golden set, an input guard and persistent memory. Thank you.</aside>
+</section>

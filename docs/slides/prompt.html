@@ -1,0 +1,38 @@
+<section id="prompt" data-transition="fade" style="background:#f6f7f5;color:#1c2128;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1">The system prompt: three versions, each fixing a real failure</h2>
+<div style="display:flex;gap:32px;align-items:stretch">
+<div style="flex:1;background:#ffffff;padding:36px;border-radius:16px;border:1px solid #dfe3e0;display:flex;flex-direction:column;gap:14px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#b35e1c">v1 · class baseline</p>
+<h3 style="font-size:32px;font-weight:600">“Answer from the documents”</h3>
+<ul style="font-size:25px;line-height:1.4;color:#4a5568">
+<li>Fluent but unattributed: 7 days and 15 days with no source</li>
+<li>Answered 21 CFR Part 50 from general knowledge, with invented citations</li>
+<li>Register drifts (“Sure! Here’s a quick overview…”)</li>
+</ul>
+</div>
+<div style="flex:1;background:#ffffff;padding:36px;border-radius:16px;border:1px solid #dfe3e0;display:flex;flex-direction:column;gap:14px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#b35e1c">v2 · role and scope</p>
+<h3 style="font-size:32px;font-weight:600">Audience, grounding, “I could not find this”</h3>
+<ul style="font-size:25px;line-height:1.4;color:#4a5568">
+<li>Invented citations stopped; off-topic questions declined</li>
+<li>Still merged E6(R3) and Helsinki into one claim</li>
+<li>Spanish questions answered in English half the time</li>
+</ul>
+</div>
+<div style="flex:1;background:#15181c;padding:36px;border-radius:16px;display:flex;flex-direction:column;gap:14px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#7cc5ff">v3 · in use</p>
+<h3 style="font-size:32px;font-weight:600;color:#f4f5f2">Citation protocol, differing sources, language policy, format</h3>
+<ul style="font-size:25px;line-height:1.4;color:#c9d1d9">
+<li>Every factual sentence carries [n]; regulatory wording quoted verbatim in English</li>
+<li>When E6(R3) and Helsinki differ, each position is attributed</li>
+<li>Answer in the user’s language; SAE, SUSAR, IB, IMP untranslated</li>
+</ul>
+</div>
+</div>
+<div style="display:flex;gap:24px;align-items:center;background:#e3eef5;padding:28px 36px;border-radius:16px">
+<x-icon name="Lightbulb" style="width:48px;height:48px;color:#2a6f97"></x-icon>
+<p style="font-size:27px;line-height:1.35;color:#1c2128"><b>Hard constraints in code, judgement in the prompt.</b> An English question once came back in Spanish despite the rule, so the user message now carries a deterministic “Reply in English / Responde en español” line, and out-of-domain questions never reach the model at all.</p>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;font-size:24px;color:#6a7179">Full prompt and rationale: README · docs/prompt_iterations.md</p>
+<aside>The prompt went through three versions. Version one is the bare class prompt: fluent, unattributed, and it answered a question about an FDA regulation we do not index, with made-up citations. Version two added role, scope and the insufficiency rule, but still merged sources and sometimes ignored the language. Version three adds the citation protocol, differing-source handling, the language policy and the output format. One lesson: hard constraints belong in code.</aside>
+</section>

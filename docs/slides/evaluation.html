@@ -1,0 +1,48 @@
+<section id="evaluation" data-transition="fade" style="background:#f6f7f5;color:#1c2128;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:36px">
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1">In-domain and out-of-domain questions separate cleanly</h2>
+<div style="display:flex;gap:40px;align-items:stretch">
+<div style="flex:1.25;background:#ffffff;padding:32px;border-radius:16px;border:1px solid #dfe3e0;display:flex;flex-direction:column;gap:12px">
+<h3 style="font-size:30px;font-weight:600">Best relevance score per query (top-3, cosine) — 6 EN/ES pairs + 6 out-of-domain</h3>
+<div style="position:relative;width:900px;height:330px">
+<svg aria-label="Dot plot of maximum relevance scores: in-domain English queries between 0.78 and 0.88, in-domain Spanish between 0.75 and 0.82, out-of-domain between 0.52 and 0.63, with the calibrated threshold line at 0.69" viewBox="0 0 900 330" style="width:900px;height:330px">
+<line x1="140" y1="40" x2="140" y2="270" stroke="#c4c9c6" stroke-width="2"/>
+<line x1="140" y1="270" x2="880" y2="270" stroke="#c4c9c6" stroke-width="2"/>
+<line x1="326" y1="270" x2="326" y2="278" stroke="#6a7179" stroke-width="2"/>
+<line x1="511" y1="270" x2="511" y2="278" stroke="#6a7179" stroke-width="2"/>
+<line x1="696" y1="270" x2="696" y2="278" stroke="#6a7179" stroke-width="2"/>
+<line x1="880" y1="270" x2="880" y2="278" stroke="#6a7179" stroke-width="2"/>
+<line x1="489" y1="30" x2="489" y2="270" stroke="#1c2128" stroke-width="3" stroke-dasharray="10 8"/>
+<circle cx="839" cy="80" r="11" fill="#2a6f97"/><circle cx="802" cy="80" r="11" fill="#2a6f97"/><circle cx="659" cy="80" r="11" fill="#2a6f97"/><circle cx="757" cy="80" r="11" fill="#2a6f97"/><circle cx="815" cy="80" r="11" fill="#2a6f97"/><circle cx="781" cy="80" r="11" fill="#2a6f97"/>
+<circle cx="733" cy="155" r="11" fill="#1c2128"/><circle cx="702" cy="155" r="11" fill="#1c2128"/><circle cx="602" cy="155" r="11" fill="#1c2128"/><circle cx="694" cy="155" r="11" fill="#1c2128"/><circle cx="707" cy="155" r="11" fill="#1c2128"/><circle cx="631" cy="155" r="11" fill="#1c2128"/>
+<circle cx="375" cy="230" r="11" fill="#d9772b"/><circle cx="179" cy="230" r="11" fill="#d9772b"/><circle cx="268" cy="230" r="11" fill="#d9772b"/><circle cx="214" cy="230" r="11" fill="#d9772b"/><circle cx="246" cy="230" r="11" fill="#d9772b"/><circle cx="173" cy="230" r="11" fill="#d9772b"/>
+</svg>
+<p style="position:absolute;left:0;top:66px;width:130px;font-size:24px;font-weight:600;color:#2a6f97">in-domain EN</p>
+<p style="position:absolute;left:0;top:141px;width:130px;font-size:24px;font-weight:600;color:#1c2128">in-domain ES</p>
+<p style="position:absolute;left:0;top:216px;width:130px;font-size:24px;font-weight:600;color:#b35e1c">out-of-domain</p>
+<p style="position:absolute;left:310px;top:282px;width:60px;font-size:24px;color:#6a7179">0.6</p>
+<p style="position:absolute;left:495px;top:282px;width:60px;font-size:24px;color:#6a7179">0.7</p>
+<p style="position:absolute;left:680px;top:282px;width:60px;font-size:24px;color:#6a7179">0.8</p>
+<p style="position:absolute;left:864px;top:282px;width:60px;font-size:24px;color:#6a7179">0.9</p>
+<p style="position:absolute;left:498px;top:6px;width:200px;font-size:24px;font-weight:600;color:#1c2128">gate 0.69</p>
+</div>
+<p style="font-size:24px;line-height:1.35;color:#4a5568">Spanish queries retrieve the same passages ~0.04 lower; lowest in-domain 0.75 vs highest out-of-domain 0.63. The gate is the midpoint of that gap and is recorded with the embedding model.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px">
+<div style="background:#15181c;padding:32px;border-radius:16px;display:flex;flex-direction:column;gap:8px">
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#7cc5ff">Golden set</p>
+<p style="font-size:26px;line-height:1.35;color:#c9d1d9">25 hand-written items, EN + ES: 19 in-domain (2 multi-source), 4 out-of-domain, 2 that look in-domain but ask about documents not indexed (21 CFR 50, EU CTR).</p>
+</div>
+<table style="font-size:25px;color:#1c2128;background:#ffffff;border-radius:12px">
+<tr style="background:#e3eef5"><th style="width:62%;text-align:left">Metric</th><th style="width:38%;text-align:left">Result</th></tr>
+<tr><td>Document hit-rate@6 (EN / ES)</td><td>[25-item run pending]</td></tr>
+<tr><td>Section hit-rate@6 (EN / ES)</td><td>[25-item run pending]</td></tr>
+<tr><td>Refusal accuracy on out-of-domain</td><td>[25-item run pending]</td></tr>
+<tr><td>False refusals on in-domain</td><td>[25-item run pending]</td></tr>
+<tr><td>Honesty on not-indexed documents</td><td>[25-item run pending]</td></tr>
+</table>
+<p style="font-size:24px;line-height:1.35;color:#4a5568">Pilot run (3 items): every metric 1.0 in both languages.</p>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;font-size:24px;color:#6a7179">scripts/02_sanity_retrieval.py --calibrate · scripts/03_evaluate.py --with-answers · docs/evaluation.md</p>
+<aside>Before connecting the model I checked retrieval on its own. Twelve in-domain queries, in English and Spanish, and six out-of-domain ones. Spanish scores a little lower but finds the same passages. The two groups do not overlap, and the refusal threshold is the midpoint of the gap. The golden set then measures document and section hit-rate per language, refusal accuracy, false refusals, and whether the assistant stays honest about documents it does not index.</aside>
+</section>
