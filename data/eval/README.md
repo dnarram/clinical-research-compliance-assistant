@@ -4,7 +4,7 @@
 against. It is written by hand from domain knowledge — **not generated** — because the
 value of the test is knowing *which document and section* actually answers each question.
 
-**Status:** 23 items (17 in-domain incl. one multi-source, 4 out-of-domain, 2 not-in-KB), drafted by Claude from the indexed text and reviewed by the author — extend or correct freely. Suggested mix: 8–10 `in_domain` (cover all three
+**Status:** 25 items (19 in-domain incl. two multi-source, 4 out-of-domain, 2 not-in-KB), drafted by Claude from the indexed text and reviewed by the author — extend or correct freely. Suggested mix: 8–10 `in_domain` (cover all three
 documents, at least two that need more than one document to answer, e.g. consent in
 E6(R3) + Helsinki, safety reporting in E2A + E6(R3) §3.13), 3–4 `ood` (clinical advice,
 unrelated topics, and one *in-domain-looking* question about a document that is not in
