@@ -72,10 +72,17 @@ Three fixes, each aimed at one of those: widen every retrieved chunk to its whol
 when the section is short (read from the vector store, no extra API calls); when a question
 names documents, share the retrieval slots between them with a metadata filter; and a
 prompt that answers the covered part of a question instead of refusing all of it. With the
-same golden set and the same scoring, answer keyword coverage went from 0.82 to 0.97. Two
-things did not improve, and I report them rather than tune against my own test set: a
-multi-hop question still misses one timeline (one retrieval pass cannot bring every hop),
-and routing cost one section hit on a Spanish question.
+same golden set and the same scoring, answer keyword coverage went from 0.82 to 0.97, and
+correctness judged by an LLM against expert reference answers from 0.78 to 0.95.
+
+Because I designed those fixes while reading that set, I then wrote twelve new questions
+after freezing the system and ran them once: judged correctness 0.95 → 1.00, no regression.
+The judge has a caveat worth saying out loud: the larger judge model allows twenty calls a
+day on the free tier, so the scores come from the same small model that writes the answers;
+on 38 answers both judged they agree 79 % and the larger one is stricter. Two things did not
+improve, and I report them rather than tune against my own test set: a multi-hop question
+still misses a step (one retrieval pass cannot bring every hop), and routing cost one
+section hit on a Spanish question.
 
 ## What I would do next
 

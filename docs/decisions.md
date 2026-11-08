@@ -158,3 +158,32 @@ separated real failures from artefacts of the keyword list:
 Both configurations were re-run with the **same** revised keywords (`--prompt-version v3
 --no-expand --no-routing` vs defaults), so the comparison in `docs/evaluation.md` isolates
 the pipeline change. Cost: prompts get longer (up to ~4,000 characters per passage).
+
+## 2026-11-08 — Correctness by LLM judge, and a held-out set against over-fitting
+
+Two weaknesses of the golden-set comparison: keyword coverage only approximates
+correctness, and the fixes were designed while reading golden-set answers.
+
+* **LLM judge** (`judge.py`, `scripts/05_judge.py`): compares each in-domain answer with an
+  expert `reference` answer (added to every in-domain golden item, written from the verified
+  indexed text) and returns correct / partially correct / incorrect with the missing points
+  and errors, as JSON validated by Pydantic. Reference-based rather than context-based: it
+  checks what a CRA would check — is the regulatory content right and complete.
+* **Judge model.** The intended judge, `gemini-3.5-flash` (larger than the answering
+  `gemini-3.5-flash-lite`), allows **20 requests per day per project** on the free tier; with
+  both keys it judged one answer set (38) and stopped. Rather than mix judges, all four sets
+  were judged with `gemini-3.5-flash-lite`, and the two judges were compared on the 38 answers
+  both scored: 78.9 % exact agreement, `flash` stricter by ~0.08 on the mean. Outputs are
+  tagged with the judge model (`*.judge-<model>.jsonl`) so verdicts never mix.
+* **Held-out set** (`data/eval/heldout.jsonl`, 12 items): written after v4 was frozen, on
+  topics the golden set does not touch, run once per configuration, never tuned on.
+  Result: judged correctness 0.950 → 1.000, keyword coverage 0.925 → 1.0, retrieval and
+  refusals perfect in both. The gain is smaller than on the golden set because the held-out
+  questions sit in single sections.
+* **Measurement fixes found on the way, applied to both configurations:** the honesty
+  detector missed v4's graded phrasing ("no se incluye en las fuentes") — a false negative,
+  cue list extended; the reference for `helsinki_incapable_consent` summarised ¶30 too
+  thinly, so the judge marked a correct answer "incorrect" — reference extended with the
+  verified ¶30 text and that item re-judged in both configurations.
+* **zsh note for scripts:** unquoted `$var` does not word-split in zsh; pass optional CLI
+  arguments as separate words.

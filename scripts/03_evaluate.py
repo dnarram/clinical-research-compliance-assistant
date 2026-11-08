@@ -29,6 +29,9 @@ def main() -> int:
     parser.add_argument("--with-answers", action="store_true", help="generate answers (LLM calls)")
     parser.add_argument("--prompt-version", default=None, help="v1 .. v4 (default: settings)")
     parser.add_argument("--out", default="docs/evaluation.md")
+    parser.add_argument(
+        "--golden", default="", help="golden-set file (default: data/eval/golden.jsonl)"
+    )
     parser.add_argument("--pause", type=float, default=2.0, help="seconds between LLM calls")
     parser.add_argument(
         "--ids", default="", help="comma-separated golden ids to run (default: all)"
@@ -56,7 +59,8 @@ def main() -> int:
     if args.no_routing:
         overrides["doc_routing"] = False
     settings = load_settings(**overrides)
-    items = load_golden(settings.golden_path)
+    golden_path = Path(args.golden) if args.golden else settings.golden_path
+    items = load_golden(golden_path)
     if args.ids:
         wanted = {i.strip() for i in args.ids.split(",") if i.strip()}
         items = [i for i in items if i.id in wanted]

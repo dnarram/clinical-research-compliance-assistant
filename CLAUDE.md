@@ -37,6 +37,9 @@ uv run scripts/01_build_kb.py                     # embed new chunks (needs GEMI
 uv run scripts/01_build_kb.py --rebuild-only      # Chroma from the versioned cache, no API calls
 uv run scripts/02_sanity_retrieval.py             # top-k inspection + threshold calibration
 uv run scripts/03_evaluate.py                     # golden set metrics -> docs/evaluation.md
+uv run scripts/03_evaluate.py --golden data/eval/heldout.jsonl --with-answers  # held-out set
+uv run scripts/05_judge.py --answers data/eval/answers.jsonl            # LLM judge (gemini-3.5-flash)
+uv run python notebooks/build_notebook.py notebooks/compliance_assistant.ipynb  # regenerate the notebook
 uv run scripts/chat.py                            # terminal REPL
 uv run jupyter lab notebooks/
 uv run streamlit run app.py
@@ -58,7 +61,9 @@ data/kb/embeddings/         embedding cache, one jsonl.gz per document (VERSIONE
 data/kb/manifest.json       what was embedded with which model/chunking (VERSIONED)
 data/kb/calibration.json    empirically chosen relevance threshold (VERSIONED)
 data/chroma/                rebuilt from the cache; git-ignored
-data/eval/golden.jsonl      bilingual golden set — written by David, not generated
+data/eval/golden.jsonl      bilingual golden set (25 items) — reviewed by David, not generated
+data/eval/heldout.jsonl     held-out set (12 items), written after v4 was frozen; never tuned on
+data/eval/*answers*.jsonl   generated answers + *.judge.jsonl verdicts, committed for audit
 docs/                       living documentation; source for README and the demo
 ```
 

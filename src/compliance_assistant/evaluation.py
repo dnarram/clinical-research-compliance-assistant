@@ -43,6 +43,17 @@ NOT_FOUND_CUES = (
     "no contiene",
     "no está en mi base",
     "no se encuentra en mi base",
+    # Added 2026-11-08 after a held-out answer showed v4's graded phrasing
+    # ("…ya que el texto de ICH E9(R1) no se incluye en las fuentes"): a false negative of
+    # this detector, not a change in the answers.
+    "not included in",
+    "is not in the sources",
+    "cannot answer",
+    "no se incluye",
+    "no se incluyen",
+    "no está incluido",
+    "no está incluida",
+    "no puedo responder",
 )
 
 
@@ -104,6 +115,7 @@ class GoldenItem:
     expected_keywords: tuple[str, ...] = ()
     all_docs_required: bool = False  # multi-source items: every expected doc must appear
     notes: str = ""
+    reference: str = ""  # expert reference answer, used by the LLM judge
 
 
 def load_golden(path: Path) -> list[GoldenItem]:
@@ -126,6 +138,7 @@ def load_golden(path: Path) -> list[GoldenItem]:
                 expected_keywords=tuple(d.get("expected_keywords", [])),
                 all_docs_required=bool(d.get("all_docs_required", False)),
                 notes=d.get("notes", ""),
+                reference=d.get("reference", ""),
             )
         )
     return items

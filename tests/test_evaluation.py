@@ -165,3 +165,12 @@ def test_plural_endings_are_accepted() -> None:
     text = normalise("their legally acceptable representatives, acting in the best interest")
     assert keyword_found("legally acceptable representative", text)
     assert not keyword_found("legally acceptable representative", normalise("representativeness"))
+
+
+def test_honesty_cues_cover_graded_spanish_phrasing() -> None:
+    from compliance_assistant.evaluation import NOT_FOUND_CUES, normalise
+
+    text = normalise(
+        "No puedo responder completamente, ya que el texto de ICH E9(R1) no se incluye en las fuentes."
+    )
+    assert any(cue in text for cue in NOT_FOUND_CUES)

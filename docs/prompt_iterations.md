@@ -101,6 +101,10 @@ SUSARs) but still misses the 15-day timeline: one retrieval pass does not bring 
 With v4 the Spanish answers to the two not-indexed documents and to the reporting chain are
 written in Spanish (in v3's baseline re-run the first two were in English).
 
+Judged correctness against expert references (LLM judge, same judge for both): golden set
+0.776 → 0.947; held-out set written after v4 was frozen 0.950 → 1.000 (`README.md`,
+*Evaluation*).
+
 Not attributable to v4 alone: the comparison changes the prompt, context expansion and
 document routing together, because the failures they address appeared together. The
 notebook (section 5) shows v1 vs v4 on a single question; a prompt-only ablation (v4 with

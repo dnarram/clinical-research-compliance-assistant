@@ -438,6 +438,48 @@ lines = ["| metric | v3 baseline | v4 + expansion + routing |", "|---|---|---|"]
 lines += [f"| {k} | {before.get(k, 'n/a')} | {after.get(k, 'n/a')} |" for k in after]
 display(Markdown("\n".join(lines)))
 """)
+md(r"""
+### 9.1 · Do the improvements generalise? Held-out set and LLM judge
+
+Two checks against over-fitting to the golden set:
+
+* **Held-out set** (`data/eval/heldout.jsonl`, 12 items × EN/ES) written *after* v4 was frozen, on topics the golden set does not touch, run once per configuration and never tuned on.
+* **LLM judge** (`scripts/05_judge.py`) compares every in-domain answer with the expert reference: correct = 1, partially correct = 0.5, incorrect = 0 — correctness, which keyword coverage only approximates. The intended judge, `gemini-3.5-flash` (larger than the answering model), allows 20 requests a day on the free tier, enough for one answer set; all four sets were therefore judged with `gemini-3.5-flash-lite`, and the two judges are compared on the 38 answers `flash` did judge.
+
+Both were produced by the scripts; the cell below only reads the committed results.
+""")
+code(r"""
+import statistics
+
+def judge_mean(path):
+    p = PROJECT_ROOT / path
+    if not p.exists():
+        return "not run"
+    rows = [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+    counts = {v: sum(r["verdict"] == v for r in rows) for v in ("correct", "partially_correct", "incorrect")}
+    return f"{statistics.mean(r['score'] for r in rows):.2f} ({counts['correct']}/{counts['partially_correct']}/{counts['incorrect']})"
+
+ho_before, ho_after = metric_table("docs/heldout_baseline_v3.md"), metric_table("docs/heldout_evaluation.md")
+J = "judge-gemini-3.5-flash-lite"   # the judge that covers all four answer sets (see below)
+rows = [
+    "| | v3 baseline | v4 + expansion + routing |", "|---|---|---|",
+    f"| Judge score, golden set (correct/partial/incorrect) | {judge_mean(f'data/eval/answers_baseline_v3.{J}.jsonl')} | {judge_mean(f'data/eval/answers.{J}.jsonl')} |",
+    f"| Judge score, held-out set | {judge_mean(f'data/eval/heldout_answers_baseline_v3.{J}.jsonl')} | {judge_mean(f'data/eval/heldout_answers.{J}.jsonl')} |",
+]
+for k in ("keyword_coverage", "doc_hit_rate@6_en", "doc_hit_rate@6_es", "section_hit_rate@6_en", "section_hit_rate@6_es",
+          "refusal_accuracy_en", "refusal_accuracy_es", "false_refusal_rate_en", "false_refusal_rate_es", "not_in_kb_honesty"):
+    rows.append(f"| Held-out {k} | {ho_before.get(k, 'n/a')} | {ho_after.get(k, 'n/a')} |")
+display(Markdown("\n".join(rows)))
+
+# Is the cheaper judge trustworthy? Compare it with gemini-3.5-flash on the 38 golden v3 answers both judged.
+from compliance_assistant.judge import agreement
+def load(path):
+    p = PROJECT_ROOT / path
+    return [json.loads(l) for l in p.read_text().splitlines() if l.strip()] if p.exists() else []
+stats = agreement(load("data/eval/answers_baseline_v3.judge-gemini-3.5-flash.jsonl"),
+                  load(f"data/eval/answers_baseline_v3.{J}.jsonl"))
+print("judge agreement, gemini-3.5-flash (a) vs gemini-3.5-flash-lite (b):", json.dumps(stats, indent=1))
+""")
 
 # 10 --------------------------------------------------------------------------------------
 md(r"""

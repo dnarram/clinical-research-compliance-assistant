@@ -1,5 +1,5 @@
 <section id="evaluation" data-transition="fade" style="background:#f6f7f5;color:#1c2128;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:36px">
-<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1">Evaluation: retrieval separates cleanly, answers go from 0.82 to 0.97</h2>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1">Evaluation: judged correctness 0.78 → 0.95, confirmed on a held-out set</h2>
 <div style="display:flex;gap:40px;align-items:stretch">
 <div style="flex:1.25;background:#ffffff;padding:32px;border-radius:16px;border:1px solid #dfe3e0;display:flex;flex-direction:column;gap:12px">
 <h3 style="font-size:30px;font-weight:600">Best relevance score per query (top-3, cosine) — 6 EN/ES pairs + 6 out-of-domain</h3>
@@ -30,19 +30,19 @@
 <div style="flex:1;display:flex;flex-direction:column;gap:20px">
 <div style="background:#15181c;padding:32px;border-radius:16px;display:flex;flex-direction:column;gap:8px">
 <p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#7cc5ff">Golden set</p>
-<p style="font-size:26px;line-height:1.35;color:#c9d1d9">25 items × EN/ES = 50 runs: 19 in-domain (2 multi-source), 4 out-of-domain, 2 on documents not indexed.</p>
+<p style="font-size:26px;line-height:1.35;color:#c9d1d9">Golden: 25 items × EN/ES. Held-out: 12 new items, written after v4 was frozen, run once. LLM judge vs expert references.</p>
 </div>
 <table style="font-size:25px;color:#1c2128;background:#ffffff;border-radius:12px">
 <tr style="background:#e3eef5"><th style="width:50%;text-align:left">Same scoring</th><th style="width:25%;text-align:left">v3</th><th style="width:25%;text-align:left">v4 + fixes</th></tr>
-<tr><td>Answer keywords</td><td>0.815</td><td><b>0.974</b></td></tr>
+<tr><td>Judge, golden</td><td>0.78</td><td><b>0.95</b></td></tr>
+<tr><td>Judge, held-out</td><td>0.95</td><td><b>1.00</b></td></tr>
+<tr><td>Answer keywords</td><td>0.82</td><td><b>0.97</b></td></tr>
 <tr><td>Section hit EN / ES</td><td>0.95 / 1.0</td><td>0.95 / 0.95</td></tr>
-<tr><td>Document hit</td><td>1.0</td><td>1.0</td></tr>
 <tr><td>Off-topic refused</td><td>100%</td><td>100%</td></tr>
-<tr><td>In-domain refused</td><td>0</td><td>0</td></tr>
 <tr><td>Honest, not indexed</td><td>100%</td><td>100%</td></tr>
 </table>
 </div>
 </div>
 <p style="position:absolute;left:128px;bottom:64px;font-size:24px;color:#6a7179">scripts/02_sanity_retrieval.py --calibrate · scripts/03_evaluate.py --with-answers · docs/evaluation.md</p>
-<aside>Before connecting the model I checked retrieval on its own. Twelve in-domain queries, in English and Spanish, and six out-of-domain ones. Spanish scores a little lower but finds the same passages. The two groups do not overlap, and the refusal threshold is the midpoint of the gap. Then the golden set: fifty runs. Retrieval was already perfect at document level, but reading every answer showed lists cut in half by chunking, a multi-step question refused outright and Spanish refusals written in English. Section expansion, document routing and prompt v4 took answer keyword coverage from 0.82 to 0.97 with identical scoring. What remains: a multi-hop reporting chain still misses one timeline, and routing cost one section hit in Spanish — I report it rather than tune against my own test set.</aside>
+<aside>Before connecting the model I checked retrieval on its own. Twelve in-domain queries, in English and Spanish, and six out-of-domain ones. Spanish scores a little lower but finds the same passages. The two groups do not overlap, and the refusal threshold is the midpoint of the gap. Then the golden set: fifty runs. Retrieval was already perfect at document level, but reading every answer showed lists cut in half by chunking, a multi-step question refused outright and Spanish refusals written in English. Section expansion, document routing and prompt v4 took judged correctness from 0.78 to 0.95 and keyword coverage from 0.82 to 0.97, with identical scoring. Because I designed the fixes while reading that set, I then wrote twelve new questions after freezing v4 and ran them once: 0.95 to 1.00, no regression. Document hit-rate stayed at 1.0 and no in-domain question was refused in either version. The judge is flash-lite, the same model that answers, because the larger judge allows twenty calls a day; on 38 answers both judged they agree 79 percent and the larger one is stricter, so read absolute numbers as optimistic. What remains: a multi-hop reporting chain still misses a step, and routing cost one section hit in Spanish.</aside>
 </section>

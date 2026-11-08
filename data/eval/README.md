@@ -21,6 +21,7 @@ One JSON object per line:
 | `expected_sections` | optional; section numbers that should appear among the retrieved chunks (ICH "3.13.2", Helsinki paragraph "28"). Prefix with the document (`ich_e6_r3:2.8.13`) to bind a section to one document; multi-source items must tag a section for every document and need a hit **from each** |
 | `all_docs_required` | multi-source items: every expected document must be retrieved |
 | `expected_keywords` | optional; phrases the *answer* should contain, checked only with `--with-answers` (costs LLM calls). Variants separated by `\|` (British/US spelling, the Spanish rendering a Spanish answer uses); matched as whole words after lower-casing and normalising typographic quotes |
+| `reference` | in-domain items: the expert reference answer the LLM judge compares against (`scripts/05_judge.py`) |
 | `notes` | where the answer lives, for the reviewer |
 
 Metrics reported: retrieval hit-rate@k per language, section hit-rate, refusal accuracy on
@@ -28,3 +29,25 @@ Metrics reported: retrieval hit-rate@k per language, section hit-rate, refusal a
 coverage and honesty on `not_in_kb` items. Generated answers are saved to
 `data/eval/answers.jsonl` (and `answers_baseline_v3.jsonl` for the baseline run) so every
 score can be checked against the text that produced it.
+
+## Held-out set
+
+`heldout.jsonl` (12 items × EN/ES) was written **after** prompt v4, context expansion and
+document routing were frozen, on topics the golden set does not touch (unblinding, active
+comparator and placebo, post-study events, IRB/IEC composition, investigator
+qualifications, monitoring, protocol deviations, publication of results, biobanks,
+compensation for harm; plus one clinical-dosing question that must be refused and one
+question about ICH E9(R1), which is not indexed). It was run once for each configuration
+and nothing was changed afterwards; its purpose is to show whether the improvements
+measured on the golden set generalise. `tests/test_golden_consistency.py` checks both
+files and that the held-out set repeats no golden question.
+
+## LLM judge
+
+`scripts/05_judge.py --model <judge>` compares each in-domain answer with its `reference`: `correct` (1),
+`partially_correct` (0.5) or `incorrect` (0), with the missing points and errors listed.
+Verdicts are saved next to the answers (`*.judge-<model>.jsonl`) with a markdown summary
+(`*.judge-<model>.md`). The intended judge, `gemini-3.5-flash`, allows 20 requests/day on the
+free tier, so the four answer sets were judged with `gemini-3.5-flash-lite`; `--compare` measures
+agreement between judges (78.9 % on the 38 v3 golden answers both scored). The judge checks correctness against the expert reference, not faithfulness
+to the retrieved passages.

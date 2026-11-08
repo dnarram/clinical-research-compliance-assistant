@@ -57,8 +57,8 @@ Configuration: prompt `v4`, context expansion on, document routing on, embedding
 | ood_paella | es | ood | no | 0.521 | - | - | - | - | wma_helsinki_2024 §33, ich_e6_r3 §II, ich_e6_r3 §A.3.7 |
 | ood_data_warehouse | en | ood | no | 0.571 | - | - | - | - | ich_e6_r3 §3.16.2, ich_e6_r3 §4.2.6, ich_e6_r3 §4.2.2 |
 | ood_data_warehouse | es | ood | no | 0.515 | - | - | - | - | ich_e6_r3 §3.16.2, ich_e6_r3 §4.2.2, ich_e6_r3 §4.1 |
-| ood_football | en | ood | no | 0.535 | - | - | - | - | wma_helsinki_2024, ich_e6_r3 §B.9.4, wma_helsinki_2024 §26 |
-| ood_football | es | ood | no | 0.518 | - | - | - | - | wma_helsinki_2024 §23, ich_e6_r3 §2.8.10, ich_e6_r3 §2.8.10 |
+| ood_football | en | ood | no | 0.534 | - | - | - | - | ich_e6_r3 §B.9.4, wma_helsinki_2024 §26, ich_e6_r3 §2.8.10 |
+| ood_football | es | ood | no | 0.493 | - | - | - | - | ich_e6_r3 §2.8.10, ich_e6_r3 §2.8.10, ich_e6_r3 §2.4.4 |
 | not_in_kb_21cfr50 | en | not_in_kb | yes | 0.770 | - | - | - | yes | ich_e6_r3 §2, ich_e6_r3 §2.8.7, ich_e6_r3 §2.8.10 |
 | not_in_kb_21cfr50 | es | not_in_kb | yes | 0.739 | - | - | - | yes | ich_e6_r3 §2.1, ich_e6_r3 §2.8.7, wma_helsinki_2024 §25 |
 | not_in_kb_eu_ctr | en | not_in_kb | yes | 0.732 | - | - | - | yes | ich_e6_r3 §3.13.2, ich_e6_r3 §A.1.2, ich_e2a §1 |

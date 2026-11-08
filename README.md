@@ -242,7 +242,26 @@ text by `tests/test_golden_consistency.py`; generated answers are saved next to 
 | Honest "not in my knowledge base" on not-indexed documents | 1.0 | 1.0 |
 
 Both rows use the same golden set and the same scoring (`docs/evaluation_baseline_v3.md`,
-[`docs/evaluation.md`](docs/evaluation.md)). What changed and why is in
+[`docs/evaluation.md`](docs/evaluation.md)).
+
+**Correctness (LLM judge) and a held-out set.** Keyword coverage is a proxy, and the fixes
+were developed while looking at the golden set, so two further checks
+(`scripts/05_judge.py`, `data/eval/heldout.jsonl`):
+
+| Judged correctness (correct 1 · partial 0.5 · incorrect 0) | v3 baseline | **v4 + fixes** |
+|---|---|---|
+| Golden set, 38 in-domain answers | 0.776 (23 / 13 / 2) | **0.947** (35 / 2 / 1) |
+| **Held-out set**, 20 in-domain answers — written after v4 was frozen, run once | 0.950 (18 / 2 / 0) | **1.000** (20 / 0 / 0) |
+| Held-out keyword coverage · retrieval · refusals · honesty | 0.925 · 1.0 · 1.0 · 1.0 | 1.0 · 1.0 · 1.0 · 1.0 |
+
+The judge compares each answer with an expert reference answer. The intended judge,
+`gemini-3.5-flash`, is limited to 20 requests a day on the free tier, so all four answer sets
+were judged with `gemini-3.5-flash-lite` — the same model that writes the answers, which
+invites self-preference. To check it, both judges scored the 38 v3 golden answers: 78.9 %
+exact agreement, with `flash` stricter (0.697 vs 0.776). Read the absolute numbers as
+optimistic by roughly that margin; the v3 → v4 comparison uses one judge throughout. The
+held-out gain is smaller because its questions sit in single sections, where chunk truncation
+rarely bit — no regression there. What changed and why is in
 [`docs/decisions.md`](docs/decisions.md): reading every v3 answer showed lists cut by
 chunking presented as complete (E2A *serious*: 2 of 5 criteria; E6(R3) consent elements:
 4 of 22), a multi-step question refused outright, and that refusal written in English to a
