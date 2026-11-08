@@ -8,6 +8,7 @@ Streamlit Cloud the key comes from the app's Secrets (GEMINI_API_KEY).
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import os
 import sys
 from pathlib import Path
@@ -34,6 +35,39 @@ except ImportError:
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
+# --- code version -----------------------------------------------------------------------------
+# Streamlit Cloud applies a git push without restarting the Python process. Two things then
+# survive from the previous deploy: the imported `compliance_assistant` modules and the
+# Assistant held by st.cache_resource — so new app code ran against the old agent (an old
+# Answer class without `cached`, old retrieval without section expansion). The fingerprint
+# of the package source and the knowledge-base metadata detects a deploy: stale modules are
+# dropped and re-imported, and the cached Assistant is keyed on the same fingerprint.
+_ROOT = Path(__file__).resolve().parent
+
+
+def _code_fingerprint() -> str:
+    h = hashlib.sha256()
+    files = sorted((_ROOT / "src" / "compliance_assistant").glob("*.py"))
+    files += [
+        _ROOT / "data" / "kb" / n for n in ("manifest.json", "calibration.json", "sources.yaml")
+    ]
+    for f in files:
+        if f.exists():
+            h.update(f.name.encode())
+            h.update(f.read_bytes())
+    return h.hexdigest()[:12]
+
+
+CODE_VERSION = _code_fingerprint()
+_loaded = sys.modules.get("compliance_assistant")
+if _loaded is not None and getattr(_loaded, "CODE_VERSION", None) != CODE_VERSION:
+    for _name in [m for m in sys.modules if m.split(".")[0] == "compliance_assistant"]:
+        del sys.modules[_name]
+
+import compliance_assistant
+
+compliance_assistant.CODE_VERSION = CODE_VERSION  # type: ignore[attr-defined]
+
 from compliance_assistant.agent import Assistant
 from compliance_assistant.config import MissingApiKeyError, load_settings
 from compliance_assistant.ingestion import load_sources
@@ -43,9 +77,10 @@ st.set_page_config(
 )
 
 
-@st.cache_resource(show_spinner="Loading the knowledge base…")
-def get_assistant() -> Assistant:
-    # Rebuilds Chroma from the versioned embedding cache if needed: no embedding API calls.
+@st.cache_resource(show_spinner="Loading the knowledge base…", max_entries=1)
+def get_assistant(code_version: str) -> Assistant:
+    """One Assistant per code version (`code_version` is the cache key). Rebuilds Chroma from
+    the versioned embedding cache if needed: no embedding API calls."""
     return Assistant.from_settings()
 
 
@@ -86,7 +121,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 try:
-    assistant = get_assistant()
+    assistant = get_assistant(CODE_VERSION)
 except MissingApiKeyError as exc:
     st.error(str(exc))
     st.stop()

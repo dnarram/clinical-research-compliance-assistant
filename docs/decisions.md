@@ -187,3 +187,18 @@ correctness, and the fixes were designed while reading golden-set answers.
   verified ¶30 text and that item re-judged in both configurations.
 * **zsh note for scripts:** unquoted `$var` does not word-split in zsh; pass optional CLI
   arguments as separate words.
+
+## 2026-11-08 — Streamlit Cloud: deploys must not reuse the previous deploy's agent
+
+Observed on the public app after the v4 push: `AttributeError: … answer.cached` and an
+answer built by the *old* pipeline (E2A *serious* definition cut after two criteria, no
+section expansion, no document routing). Cause: Streamlit Cloud applies a git push without
+restarting the Python process, so the imported `compliance_assistant` modules and the
+Assistant held by `st.cache_resource` (keyed only on the factory's own source, which had
+not changed) survived; the new `app.py` received an `Answer` from the old class.
+
+Fix in `app.py`: a fingerprint of the package source and the knowledge-base metadata
+(`manifest.json`, `calibration.json`, `sources.yaml`). If the loaded package carries a
+different fingerprint, its modules are dropped from `sys.modules` and re-imported; the
+cached Assistant is keyed on the fingerprint with `max_entries=1`. `tests/test_app.py`
+loads the app offline and simulates a stale deploy.
