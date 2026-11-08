@@ -1,0 +1,34 @@
+# Secrets — the Gemini key lives in .env (local) or Streamlit Cloud secrets, never in git.
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Knowledge base artefacts
+# The Chroma directory is rebuilt from data/kb/embeddings/ (which IS versioned), so it never enters git.
+data/chroma/
+# Raw sources (ICH PDFs, WMA page) are not redistributed here: scripts/00_download_sources.py
+# fetches them from the publishers and verifies the sha256 recorded in data/kb/sources.yaml.
+# The embedding cache (versioned) is enough to run the assistant without them.
+data/kb/raw/*
+!data/kb/raw/.gitkeep
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# The Evolve assignment brief is course material, not part of the public repo.
+Asistente Experto con Gemini, RAG y Agentes.*
+Proyecto Final*
+*.pages
+*.docx

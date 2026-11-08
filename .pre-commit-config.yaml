@@ -1,0 +1,39 @@
+# Run on every commit:  pre-commit install
+# Run over everything:  pre-commit run --all-files
+
+repos:
+  # --- housekeeping ---------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+        exclude: \.ipynb$
+      - id: trailing-whitespace
+        exclude: \.ipynb$
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+      # Embedding caches are a few MB; PDFs and Chroma dirs must not sneak in.
+      - id: check-added-large-files
+        args: [--maxkb=10240]
+      - id: detect-private-key
+
+  # --- Python: format + lint ------------------------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.5
+    hooks:
+      - id: ruff-format
+      - id: ruff
+        args: [--fix]
+
+  # --- Secrets (no Go toolchain needed) -------------------------------------
+  # Gemini API keys start with "AIza" (legacy) or "AQ." (current AI Studio keys).
+  # The lock file is excluded because it cannot contain one and is large.
+  - repo: local
+    hooks:
+      - id: no-gemini-key
+        name: no Gemini API key in tracked files
+        entry: bash -c '! git grep -nE "(AIza[0-9A-Za-z_-]{30,}|AQ\.[0-9A-Za-z_-]{40,})" -- . ":!uv.lock"'
+        language: system
+        pass_filenames: false

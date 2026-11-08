@@ -1,0 +1,47 @@
+# Knowledge-base inventory. Every document the assistant can cite is listed here.
+# scripts/00_download_sources.py fetches each `url` into data/kb/raw/<doc_id>.pdf and
+# verifies `sha256` (`--record` fills it in on first download). The PDFs are also
+# committed so the repo is reproducible without network access; the hash is the
+# provenance record either way.
+#
+# `pages: [first, last]` (1-based, inclusive) restricts indexing to the substantive
+# body — cover pages, tables of contents and document-history tables only add noise.
+#
+# Licence notes are summarised in docs/sources.md.
+
+documents:
+  - doc_id: ich_e2a
+    title: "ICH E2A — Clinical Safety Data Management: Definitions and Standards for Expedited Reporting"
+    short_cite: "ICH E2A"
+    year: 1994
+    url: "https://database.ich.org/sites/default/files/E2A_Guideline.pdf"
+    sha256: 1c095d80419287187bf5b2db5eba83864adccebf07b9c593bf5925b4ab6f7cf7
+    pages: [3, 12]   # 1-2: cover + document history
+    section_style: ich
+    licence: "ICH guideline. Reproduction permitted with attribution to ICH (see ICH legal notice)."
+
+  - doc_id: ich_e6_r3
+    title: "ICH E6(R3) — Guideline for Good Clinical Practice (Step 4, 6 January 2025)"
+    short_cite: "ICH E6(R3)"
+    year: 2025
+    url: "https://database.ich.org/sites/default/files/ICH_E6%28R3%29_Step4_FinalGuideline_2025_0106.pdf"
+    sha256: e6ce19e36ce7d2e294f89ee89492b9e035178c3cca48984392bbd92eec9b002c
+    pages: [8, 86]   # 1-7: cover, document history, table of contents
+    section_style: ich
+    licence: "ICH guideline. Reproduction permitted with attribution to ICH (see ICH legal notice)."
+
+  - doc_id: wma_helsinki_2024
+    title: "WMA Declaration of Helsinki — Ethical Principles for Medical Research Involving Human Participants (October 2024)"
+    short_cite: "Declaration of Helsinki (2024)"
+    year: 2024
+    # The WMA publishes the current text as a web page; its PDF export mangles ligatures
+    # ("Clari6cation") and splits paragraph numbers from their text, so the HTML is the
+    # cleaner source (paragraph numbers are recovered from <ol start="N">). The saved HTML
+    # is committed; if WMA changes the page the hash will differ — re-run
+    # 00_download_sources.py --force --record and review the diff.
+    url: "https://www.wma.net/policies-post/wma-declaration-of-helsinki/"
+    format: html
+    sha256: 1d94f67b50957bb54417686210b3fbcd4e3db157b77878a20778ba6a39c82585
+    pages: null
+    section_style: numbered_paragraphs
+    licence: "World Medical Association policy, publicly available at wma.net; cite WMA as the source."

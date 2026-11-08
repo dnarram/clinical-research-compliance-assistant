@@ -1,0 +1,41 @@
+{
+  "ich_e2a": {
+    "built_at": "2026-11-08T08:44:32+00:00",
+    "chunk_overlap": 50,
+    "chunk_size": 500,
+    "embedding_dim": 768,
+    "embedding_model": "gemini-embedding-2",
+    "n_chunks": 68,
+    "pages": [
+      3,
+      12
+    ],
+    "sha256": "1c095d80419287187bf5b2db5eba83864adccebf07b9c593bf5925b4ab6f7cf7",
+    "title": "ICH E2A \u2014 Clinical Safety Data Management: Definitions and Standards for Expedited Reporting"
+  },
+  "ich_e6_r3": {
+    "built_at": "2026-11-08T08:44:33+00:00",
+    "chunk_overlap": 50,
+    "chunk_size": 500,
+    "embedding_dim": 768,
+    "embedding_model": "gemini-embedding-2",
+    "n_chunks": 665,
+    "pages": [
+      8,
+      86
+    ],
+    "sha256": "e6ce19e36ce7d2e294f89ee89492b9e035178c3cca48984392bbd92eec9b002c",
+    "title": "ICH E6(R3) \u2014 Guideline for Good Clinical Practice (Step 4, 6 January 2025)"
+  },
+  "wma_helsinki_2024": {
+    "built_at": "2026-11-08T08:44:33+00:00",
+    "chunk_overlap": 50,
+    "chunk_size": 500,
+    "embedding_dim": 768,
+    "embedding_model": "gemini-embedding-2",
+    "n_chunks": 68,
+    "pages": null,
+    "sha256": "1d94f67b50957bb54417686210b3fbcd4e3db157b77878a20778ba6a39c82585",
+    "title": "WMA Declaration of Helsinki \u2014 Ethical Principles for Medical Research Involving Human Participants (October 2024)"
+  }
+}
