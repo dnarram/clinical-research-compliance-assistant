@@ -120,3 +120,48 @@ def test_not_in_kb_and_all_docs_required(tmp_path: Path) -> None:
     assert by_id["cfr"].grounded is True and by_id["cfr"].honest_not_found is True
     assert report.metrics()["not_in_kb_honesty"] == 1.0
     assert "| cfr | en | not_in_kb | yes |" in report.to_markdown()
+
+
+def test_keyword_matching_normalises_quotes_and_accepts_variants() -> None:
+    from compliance_assistant.evaluation import keyword_found, normalise
+
+    answer = normalise(
+        "Per the Investigator\u2019s Brochure, it requires inpatient hospitalisation."
+    )
+    assert keyword_found("Investigator's Brochure", answer)
+    assert keyword_found("hospitalization|hospitalisation", answer)
+    assert not keyword_found("hospitalization", answer)
+    assert keyword_found(
+        "15 calendar days|15 días naturales", normalise("en un plazo de 15 días naturales")
+    )
+
+
+def test_whole_word_matching_and_tagged_sections() -> None:
+    from compliance_assistant.evaluation import keyword_found, normalise, section_hit
+
+    assert not keyword_found("IB", normalise("es posible que ocurra"))
+    assert keyword_found(
+        "Investigator's Brochure|IB", normalise("más grave de lo descrito en el IB [2]")
+    )
+    assert keyword_found(
+        "regulatory authority", normalise("to the regulatory authority(ies) of all SUSARs")
+    )
+
+    retrieved = {("ich_e6_r3", "2.8.1"), ("wma_helsinki_2024", "28")}
+    tagged = ("ich_e6_r3:2.8.13", "wma_helsinki_2024:28")
+    docs = ("ich_e6_r3", "wma_helsinki_2024")
+    assert section_hit(tagged, retrieved, docs, all_docs=False), "any section is enough"
+    assert not section_hit(tagged, retrieved, docs, all_docs=True), "E6(R3) §2.8.13 missing"
+    assert section_hit(tagged, retrieved | {("ich_e6_r3", "2.8.13")}, docs, all_docs=True)
+    assert section_hit(("1",), {("ich_e2a", "1")}, ("ich_e2a",), all_docs=False)
+    assert not section_hit(
+        ("ich_e2a:1",), {("wma_helsinki_2024", "1")}, ("ich_e2a",), all_docs=False
+    )
+
+
+def test_plural_endings_are_accepted() -> None:
+    from compliance_assistant.evaluation import keyword_found, normalise
+
+    text = normalise("their legally acceptable representatives, acting in the best interest")
+    assert keyword_found("legally acceptable representative", text)
+    assert not keyword_found("legally acceptable representative", normalise("representativeness"))

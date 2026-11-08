@@ -77,19 +77,22 @@ docs/                       living documentation; source for README and the demo
    narrow band. `02_sanity_retrieval.py --calibrate` writes `data/kb/calibration.json`
    from the in-domain vs out-of-domain score distributions; `Settings.score_threshold`
    stays `None` unless an explicit override is intended.
-5. **The graph always retrieves.** Every question goes `rewrite_query -> retrieve ->
+5. **The gate reads unfiltered scores.** Document routing (metadata filter) and context
+   expansion happen after the refusal decision and must never feed into it.
+6. **The graph always retrieves.** Every question goes `rewrite_query -> retrieve ->
    route -> generate | refuse`. The LLM never decides whether to consult the knowledge
    base (the brief requires the KB to be used on every query).
-6. **Language policy.** Corpus and prompts are English. Retrieval runs on an English
+7. **Language policy.** Corpus and prompts are English. Retrieval runs on an English
    standalone question produced by `rewrite_query`; the answer is written in the
    language of the user's question, quoting regulatory text verbatim in English.
-7. **Memory window = 10 messages**, applied when building the prompt, not when storing.
+8. **Memory window = 10 messages**, applied when building the prompt, not when storing.
    The checkpointer keeps the full thread. The memory demo (Q1, referential Q2,
    "summarise what you told me") must fit inside the window; `tests/test_graph.py`
    pins that.
-8. **The golden set is David's.** `data/eval/golden.jsonl` ground truth (document,
-   section) comes from his domain knowledge. Code ships a template with 3 examples and
-   a TODO; it never auto-generates questions.
+9. **The golden set is reviewed by David.** `data/eval/golden.jsonl` ground truth (document,
+   section) is checked against the indexed text (`tests/test_golden_consistency.py`) and
+   reviewed by him. Never auto-generate questions from the corpus, and never loosen a
+   keyword to raise a score — only to accept a correct rendering (spelling, Spanish).
 
 ## Style
 

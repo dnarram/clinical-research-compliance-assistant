@@ -1,6 +1,6 @@
 # How I built a GCP compliance assistant that cites every sentence — my Generative AI project at Evolve
 
-*Draft for Dev.to (Evolve organization). ~700 words. Tags: ai, python, rag, langgraph, healthtech.*
+*Draft for Dev.to (Evolve organization). ~900 words. Tags: ai, python, rag, langgraph, healthtech.*
 
 Five years ago I was on the other side of this problem. Supporting clinical-trial software
 for Medidata, Pfizer and Novo Nordisk, the questions that landed on my desk were rarely
@@ -56,17 +56,33 @@ Responde en español" line appended in code.
 ## What the numbers say
 
 Before wiring the model I checked retrieval on its own: Spanish queries find the same
-passages as English ones, about 0.04 lower in score. A hand-written golden set of 25
-questions (19 in-domain including two that need more than one document, 4 out-of-domain,
-2 about documents deliberately not indexed) measures document and section hit-rate per
-language, refusal accuracy, false refusals and whether the assistant stays honest about
-documents it does not hold. *[Final figures from the 25-item run go here.]*
+passages as English ones, about 0.04 lower in score. Then a golden set of 25 questions, each
+in English and Spanish (19 in-domain including two that need more than one document, 4
+out-of-domain, 2 about documents deliberately not indexed): 50 runs.
+
+Retrieval looked perfect — the right document in the top-6 every time, every off-topic
+question refused, nothing in-domain refused. Reading every answer told a different story.
+ICH E2A's definition of *serious* came back with two of its five criteria, because the
+definition straddles two 500-character chunks; the consent elements of E6(R3) stopped at
+(d) of (v), presented as complete; a question about the reporting chain from investigator
+to regulator was refused outright although every step was retrievable; and some Spanish
+refusals came back in English.
+
+Three fixes, each aimed at one of those: widen every retrieved chunk to its whole section
+when the section is short (read from the vector store, no extra API calls); when a question
+names documents, share the retrieval slots between them with a metadata filter; and a
+prompt that answers the covered part of a question instead of refusing all of it. With the
+same golden set and the same scoring, answer keyword coverage went from 0.82 to 0.97. Two
+things did not improve, and I report them rather than tune against my own test set: a
+multi-hop question still misses one timeline (one retrieval pass cannot bring every hop),
+and routing cost one section hit on a Spanish question.
 
 ## What I would do next
 
-Add EMA GVP Module VI and the EU Clinical Trials Regulation (the ingestion is per
-document and idempotent), hybrid BM25 + vector retrieval for exact section numbers, and
-an LLM-as-judge faithfulness check over the golden set.
+Query decomposition for multi-hop questions, then EMA GVP Module VI and the EU Clinical
+Trials Regulation (the ingestion is per document and idempotent), an LLM-as-judge
+faithfulness check over the golden set — keyword coverage is only a proxy — and hybrid
+BM25 + vector retrieval for exact section numbers.
 
 The repository, the executed notebook and the live app are here:
 <https://github.com/dnarram/clinical-research-compliance-assistant>.

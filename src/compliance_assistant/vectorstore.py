@@ -375,12 +375,15 @@ def build_kb(
             source.doc_id, chunks, doc_embedder, cache, settings.embedding_batch_size, sleep=sleep
         )
         report.embedded_per_doc[source.doc_id] = n
-        manifest[source.doc_id] = {
-            **key,
-            "n_chunks": len(chunks),
-            "title": source.title,
-            "built_at": datetime.now(UTC).isoformat(timespec="seconds"),
-        }
+        entry = {**key, "n_chunks": len(chunks), "title": source.title}
+        previous = manifest.get(source.doc_id, {})
+        if n or {k: previous.get(k) for k in entry} != entry:
+            # Only a real change gets a new timestamp: the timestamp keys the Chroma rebuild,
+            # and a no-op build must leave this versioned file untouched.
+            entry["built_at"] = datetime.now(UTC).isoformat(timespec="seconds")
+        else:
+            entry["built_at"] = previous.get("built_at", "")
+        manifest[source.doc_id] = entry
     if not dry_run:
         save_manifest(settings, manifest)
     return report

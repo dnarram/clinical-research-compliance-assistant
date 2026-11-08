@@ -15,6 +15,7 @@ Item types:
 from __future__ import annotations
 
 import json
+import re
 import statistics
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -24,7 +25,7 @@ from typing import Any
 from langchain_core.vectorstores import VectorStore
 
 from compliance_assistant.config import Settings
-from compliance_assistant.retrieval import retrieve
+from compliance_assistant.retrieval import ContextIndex, retrieve
 
 LANGUAGES = ("en", "es")
 TYPES = ("in_domain", "ood", "not_in_kb")
@@ -43,6 +44,54 @@ NOT_FOUND_CUES = (
     "no está en mi base",
     "no se encuentra en mi base",
 )
+
+
+_TYPOGRAPHIC = str.maketrans(
+    {"\u2019": "'", "\u2018": "'", "\u201c": '"', "\u201d": '"', "\u00a0": " ", "\u2011": "-"}
+)
+
+
+def normalise(text: str) -> str:
+    """Lower-case, typographic quotes to ASCII, collapsed whitespace — so a verbatim quote
+    with a curly apostrophe still matches a keyword typed with a straight one."""
+    return " ".join(text.translate(_TYPOGRAPHIC).lower().split())
+
+
+_WORD = "a-z0-9\u00e1\u00e9\u00ed\u00f3\u00fa\u00f1\u00fc"
+
+
+def keyword_found(keyword: str, normalised_answer: str) -> bool:
+    """A keyword may list accepted variants separated by "|" (British/US spelling, or the
+    Spanish rendering a Spanish answer uses). Variants match whole words only, so a short
+    variant such as "IB" cannot match inside "posible"; a plural ending (-s, -es) is
+    accepted so "representatives" matches "representative"."""
+    for variant in keyword.split("|"):
+        v = normalise(variant)
+        pattern = rf"(?<![{_WORD}]){re.escape(v)}(?:s|es)?(?![{_WORD}])"
+        if v and re.search(pattern, normalised_answer):
+            return True
+    return False
+
+
+def section_hit(
+    expected: tuple[str, ...],
+    retrieved: set[tuple[str, str]],
+    expected_docs: tuple[str, ...],
+    all_docs: bool,
+) -> bool:
+    """Expected sections are "section" (any expected document) or "doc_id:section".
+    Multi-source items (`all_docs`) need a correct section from every expected document."""
+    pairs = []
+    for e in expected:
+        doc, _, sec = e.rpartition(":")
+        pairs.append((doc or None, sec))
+
+    def hit(doc: str | None, sec: str) -> bool:
+        return any(sec == rs and (doc is None or doc == rd) for rd, rs in retrieved)
+
+    if all_docs:
+        return all(any(hit(d, sec) for d, sec in pairs if d == doc) for doc in expected_docs)
+    return any(hit(d, sec) for d, sec in pairs)
 
 
 @dataclass(frozen=True)
@@ -172,9 +221,14 @@ def evaluate_retrieval(
     enables keyword coverage and the not-in-KB honesty check (it is the agent's `ask`,
     so it costs LLM calls)."""
     report = EvalReport(k=settings.k, threshold=threshold)
+    index = (
+        ContextIndex.from_store(vectorstore, settings.section_budget_chars)
+        if settings.expand_context
+        else None
+    )
     for item in items:
         for lang, question in item.questions.items():
-            result = retrieve(vectorstore, question, settings, threshold=threshold)
+            result = retrieve(vectorstore, question, settings, threshold=threshold, index=index)
             docs = result.docs or [
                 d
                 for d, _ in vectorstore.similarity_search_with_relevance_scores(
@@ -186,15 +240,23 @@ def evaluate_retrieval(
                 for d in docs
             ]
             doc_ids = {d.metadata.get("doc_id") for d in docs}
-            sections = {str(d.metadata.get("section", "")) for d in docs}
-            doc_hit = section_hit = None
+            retrieved_pairs = {
+                (str(d.metadata.get("doc_id", "")), str(d.metadata.get("section", "")))
+                for d in docs
+            }
+            doc_hit = sec_hit = None
             if item.type == "in_domain" and item.expected_doc_ids:
                 expected = set(item.expected_doc_ids)
                 doc_hit = (
                     expected <= doc_ids if item.all_docs_required else bool(expected & doc_ids)
                 )
             if item.type == "in_domain" and item.expected_sections:
-                section_hit = any(s in sections for s in item.expected_sections)
+                sec_hit = section_hit(
+                    item.expected_sections,
+                    retrieved_pairs,
+                    item.expected_doc_ids,
+                    item.all_docs_required,
+                )
             r = ItemResult(
                 item.id,
                 item.type,
@@ -204,14 +266,14 @@ def evaluate_retrieval(
                 result.max_score,
                 retrieved,
                 doc_hit,
-                section_hit,
+                sec_hit,
             )
             if answer_fn is not None and item.type in ("in_domain", "not_in_kb"):
                 r.answer = answer_fn(question)
-                low = r.answer.lower()
+                low = normalise(r.answer)
                 if item.type == "in_domain" and item.expected_keywords:
                     r.keyword_coverage = sum(
-                        kw.lower() in low for kw in item.expected_keywords
+                        keyword_found(kw, low) for kw in item.expected_keywords
                     ) / len(item.expected_keywords)
                 if item.type == "not_in_kb":
                     r.honest_not_found = any(cue in low for cue in NOT_FOUND_CUES)

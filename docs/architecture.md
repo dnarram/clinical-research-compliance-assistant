@@ -11,7 +11,7 @@
 | Sources | `data/kb/sources.yaml`, `scripts/00_download_sources.py` | Inventory with URL + SHA-256; raw files fetched on demand, never committed |
 | Ingestion | `ingestion.py` | PDF (pypdf) / HTML (stdlib parser) → cleaned pages → section-aware recursive chunks (500/50) with `doc_id`, `section`, `page` metadata; deterministic chunk ids |
 | Embeddings + store | `vectorstore.py` | `EmbeddingCache` (jsonl.gz per doc, resumable, 429 back-off) · `manifest.json` (hash/model/dim/chunking) · Chroma rebuilt from cache via native `add(embeddings=…)` |
-| Retrieval | `retrieval.py` | `similarity_search_with_relevance_scores` → calibrated gate → `max_marginal_relevance_search` → numbered `Source`s and citation strings |
+| Retrieval | `retrieval.py` | `similarity_search_with_relevance_scores` (unfiltered) → calibrated gate → document routing (metadata filter when the question names documents) → `max_marginal_relevance_search` → `ContextIndex` section expansion → numbered `Source`s and citation strings |
 | Prompts | `prompts.py` | `SYSTEM_PROMPTS` v1–v3, `REWRITE_PROMPT`, `build_messages` (adds the answer-language line), `looks_english` |
 | Agent | `graph.py`, `memory.py`, `agent.py` | LangGraph `StateGraph` + `InMemorySaver`; `Assistant.ask()` facade used by notebook, app, REPL and evaluation |
 | Evaluation | `evaluation.py`, `scripts/03_evaluate.py` | Bilingual golden set → hit-rates, refusal accuracy, keyword coverage |
@@ -39,7 +39,7 @@ thread holds just the dialogue, and the 10-message window counts turns.
 | Node | Reads | Writes | LLM calls |
 |---|---|---|---|
 | `rewrite_query` | last message, windowed history | `question`, `standalone_question`, `language` | 0 on a first English turn, else 1 |
-| `retrieve` | `standalone_question` | `context`, `sources`, `grounded`, `max_score` | 0 (1 query embedding) |
+| `retrieve` | `standalone_question` | `context`, `sources`, `grounded`, `max_score` | 0 (1 query embedding, cached on disk) |
 | `route_after_retrieve` | `grounded` | — | 0 → `"generate"` or `"refuse"` |
 | `generate` | system prompt, windowed history, `context`, `question`, `language` | `messages` (+AIMessage) | 1 |
 | `refuse` | `language`, `max_score` | `messages` (+AIMessage, templated) | 0 |
@@ -76,3 +76,19 @@ sources.yaml ─▶ 00_download_sources.py ─▶ data/kb/raw/*.pdf|html  (sha25
                                                ▼
                                      data/chroma/   (derived, git-ignored)
 ```
+
+## Retrieval details
+
+* **Gate first, unfiltered.** The relevance gate reads the top-k of the whole collection, so
+  document routing and expansion can never turn a refusal into an answer or vice versa.
+* **Document routing.** `named_documents()` matches the aliases in `data/kb/sources.yaml`
+  (`\bE2A\b`; `\bE6\b`, `\bGCP\b`, `good clinical practice`; `helsinki`). Two or more named
+  documents share the k slots (3 + 3); one named document gets k − 2 filtered slots plus 2
+  unfiltered ones, so a relevant passage elsewhere can still surface. Results are merged
+  round-robin.
+* **Context expansion.** `ContextIndex` loads every chunk once (`collection.get`, no API),
+  orders them by (document, page, chunk) and groups contiguous chunks with the same section
+  label. A hit becomes its whole section when that is ≤ 4,000 characters, else the hit plus
+  its neighbours inside the section; hits that land in the same passage are merged, and the
+  splitter's 50-character overlap is removed when chunks are joined. Citations of passages
+  that cross pages read `pp.24–26`.

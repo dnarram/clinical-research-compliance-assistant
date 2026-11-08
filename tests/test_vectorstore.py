@@ -166,3 +166,12 @@ def test_cached_query_embeddings_hit_disk_cache(settings: Settings) -> None:
     other_model = CachedQueryEmbeddings(CountingEmbedding(size=4), path, model="m2")
     other_model.embed_query("susar timeline")
     assert other_model.misses == 1, "a different model must not reuse cached vectors"
+
+
+def test_noop_build_leaves_manifest_bytes_unchanged(kb: Settings) -> None:
+    embedder = CountingEmbedding(size=8)
+    build_kb(kb, embedder, sleep=lambda _: None)
+    before = kb.manifest_path.read_bytes()
+    report = build_kb(kb, embedder, sleep=lambda _: None)
+    assert report.total_embedded == 0
+    assert kb.manifest_path.read_bytes() == before, "no-op build must not touch the manifest"

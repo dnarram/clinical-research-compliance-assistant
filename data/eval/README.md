@@ -18,9 +18,13 @@ One JSON object per line:
 | `type` | `in_domain` (must be answered with sources), `ood` (must be refused by the retrieval gate) or `not_in_kb` (looks in-domain but asks about a document not indexed: the *answer* must say it is not in the knowledge base; scored only with `--with-answers`) |
 | `question_en` / `question_es` | the same question in both languages; retrieval is scored per language |
 | `expected_doc_ids` | `doc_id`s from `data/kb/sources.yaml` that should appear in the top-k (any one counts as a hit, unless `all_docs_required: true` for multi-source items) |
-| `expected_sections` | optional; section numbers that should appear among the retrieved chunks (ICH "3.13.2", Helsinki paragraph "28") |
-| `expected_keywords` | optional; phrases the *answer* should contain, checked only with `--with-answers` (costs LLM calls) |
+| `expected_sections` | optional; section numbers that should appear among the retrieved chunks (ICH "3.13.2", Helsinki paragraph "28"). Prefix with the document (`ich_e6_r3:2.8.13`) to bind a section to one document; multi-source items must tag a section for every document and need a hit **from each** |
+| `all_docs_required` | multi-source items: every expected document must be retrieved |
+| `expected_keywords` | optional; phrases the *answer* should contain, checked only with `--with-answers` (costs LLM calls). Variants separated by `\|` (British/US spelling, the Spanish rendering a Spanish answer uses); matched as whole words after lower-casing and normalising typographic quotes |
 | `notes` | where the answer lives, for the reviewer |
 
 Metrics reported: retrieval hit-rate@k per language, section hit-rate, refusal accuracy on
-`ood`, false-refusal rate on `in_domain`, and keyword coverage when answers are generated.
+`ood`, false-refusal rate on `in_domain`, and — when answers are generated — keyword
+coverage and honesty on `not_in_kb` items. Generated answers are saved to
+`data/eval/answers.jsonl` (and `answers_baseline_v3.jsonl` for the baseline run) so every
+score can be checked against the text that produced it.

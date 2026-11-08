@@ -35,8 +35,18 @@ def test_golden_items_reference_real_documents_and_sections() -> None:
         if item.type == "in_domain":
             assert item.expected_doc_ids, f"{item.id}: in_domain needs expected_doc_ids"
             for section in item.expected_sections:
-                assert any(
-                    section in sections_by_doc.get(d, set()) for d in item.expected_doc_ids
-                ), f"{item.id}: section {section!r} not found in {item.expected_doc_ids}"
+                doc, _, sec = section.rpartition(":")
+                candidates = [doc] if doc else list(item.expected_doc_ids)
+                assert not doc or doc in item.expected_doc_ids, f"{item.id}: {doc} not expected"
+                assert any(sec in sections_by_doc.get(d, set()) for d in candidates), (
+                    f"{item.id}: section {section!r} not found in {candidates}"
+                )
+            if item.all_docs_required:
+                tagged = {s.rpartition(":")[0] for s in item.expected_sections}
+                assert tagged == set(item.expected_doc_ids), (
+                    f"{item.id}: multi-source items tag a section for every document"
+                )
+            for keyword in item.expected_keywords:
+                assert all(v.strip() for v in keyword.split("|")), f"{item.id}: empty variant"
         else:
             assert not item.expected_doc_ids, f"{item.id}: {item.type} items carry no expected docs"

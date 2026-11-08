@@ -27,33 +27,42 @@ pipeline): from the safety data to the rules that govern it.
 | Capability | How |
 |---|---|
 | Knowledge base | 3 documents, ~90 pages, **801 chunks** in ChromaDB with `gemini-embedding-2` (768 d) — [`docs/sources.md`](docs/sources.md) |
-| Retrieval | Standalone English query → relevance scores → **calibrated refusal gate** → MMR top-6 → numbered passages `[n]` with citation `ICH E6(R3) §2.8.10, p.24` / `Declaration of Helsinki (2024) ¶28` |
+| Retrieval | Standalone English query → relevance scores → **calibrated refusal gate** → MMR top-6 (shared between documents the question names) → **section-level context expansion** → numbered passages `[n]` cited `ICH E6(R3) §2.8.10, pp.24–26` / `Declaration of Helsinki (2024) ¶28` |
 | Agent | Explicit LangGraph `StateGraph`: `rewrite_query → retrieve → route → generate \| refuse` |
 | Memory | `InMemorySaver` checkpointer per `thread_id`; last 10 messages sent to the model |
 | Languages | Answers in the user's language (EN/ES); regulatory wording quoted verbatim in English |
 | Interfaces | Notebook chat cell, terminal REPL (`scripts/chat.py`), Streamlit app (`app.py`) |
-| Evaluation | Bilingual golden set → retrieval hit-rate@k per language, refusal accuracy, keyword coverage |
+| Evaluation | 25-item bilingual golden set (50 runs) → retrieval hit-rates, refusal accuracy, answer keyword coverage, honesty on not-indexed documents; baseline vs improved |
 
 ## Architecture
 
 ```
             ┌──────────────┐    ┌──────────┐    grounded?    ┌──────────┐
  question ─▶│ rewrite_query│───▶│ retrieve │──────yes───────▶│ generate │──▶ answer + sources
-            │ (history →   │    │ scores + │                 └──────────┘
-            │  standalone  │    │ MMR top-k│───────no───────▶┌──────────┐
-            │  English q)  │    └──────────┘                 │  refuse  │──▶ "not in my KB; I cover…"
-            └──────────────┘                                 └──────────┘
+            │ (history →   │    │ gate,    │                 └──────────┘
+            │  standalone  │    │ route,   │───────no───────▶┌──────────┐
+            │  English q)  │    │ MMR,     │                 │  refuse  │──▶ "not in my KB; I cover…"
+            │              │    │ expand   │                 └──────────┘
+            └──────────────┘    └──────────┘
                   ▲  InMemorySaver checkpoint per thread_id (full history; 10-message window)
 ```
 
 * **`rewrite_query`** resolves references to earlier turns ("*that* situation", "the same
   rule") and normalises the question to English, the corpus language. It skips the LLM on a
   first English turn.
-* **`retrieve`** scores the top-k with cosine relevance; if the best score is under the
+* **`retrieve`** scores the top-k over the whole collection; if the best score is under the
   **calibrated threshold** (0.69, from in-domain vs out-of-domain query distributions in
-  `data/kb/calibration.json`) the question is out of scope. Otherwise MMR (`k=6,
-  fetch_k=24, λ=0.6`) selects passages with coverage across documents.
-* **`generate`** gets system prompt v3 + windowed history + numbered passages + the user's
+  `data/kb/calibration.json`) the question is out of scope. Otherwise:
+  * **document routing** — if the question names documents ("E6(R3)", "Helsinki", "E2A";
+    aliases in `data/kb/sources.yaml`), the top-k is shared between them with a metadata
+    filter, so "compare E6(R3) and Helsinki" gets passages from both;
+  * **MMR** (`k=6, fetch_k=24, λ=0.6`) picks diverse chunks;
+  * **context expansion** — each chunk is widened to its whole section when the section is
+    ≤ 4,000 characters (a numbered requirement, a Helsinki paragraph, the 22 consent
+    elements of E6(R3) §2.8.10), else to its neighbouring chunks, read from the collection
+    with no API calls. A 500-character chunk had cut E2A's definition of *serious* in half.
+  The gate always uses the unfiltered scores, so routing never changes what is refused.
+* **`generate`** gets system prompt v4 + windowed history + numbered passages + the user's
   question and an explicit answer-language line. **`refuse`** is templated (no LLM call).
 * Retrieved passages live in graph state, not in `messages`, so the memory window counts
   turns, not context.
@@ -72,7 +81,7 @@ queries `RETRIEVAL_QUERY`. `01_build_kb.py --dry-run` counts chunks against the 
 
 ## System prompt and its justification
 
-The prompt in use (`SYSTEM_PROMPTS["v3"]` in [`src/compliance_assistant/prompts.py`](src/compliance_assistant/prompts.py)):
+The prompt in use (`SYSTEM_PROMPTS["v4"]` in [`src/compliance_assistant/prompts.py`](src/compliance_assistant/prompts.py)):
 
 ```text
 You are a regulatory compliance assistant for clinical research. Your users are clinical
@@ -85,9 +94,17 @@ GROUNDING
   you believe you know the answer.
 - Cite the passage that supports each statement with its number in square brackets,
   e.g. "within 7 calendar days [2]". Every factual sentence needs at least one citation.
-- If the passages do not contain the answer, say so plainly ("I could not find this in my
-  knowledge base"), state what the knowledge base does cover, and stop. Never invent
-  section numbers, timelines, definitions or responsibilities.
+- A question may need several passages combined (for example a reporting chain:
+  investigator to sponsor, then sponsor to regulators with its timelines). Build the
+  answer step by step from the passages, citing each step.
+- If the passages answer only part of the question, answer that part and say clearly
+  which part they do not cover. Only when nothing in the passages is relevant, say that
+  you could not find it in your knowledge base (in the user's language), state what the
+  knowledge base covers, and stop. Never invent section numbers, timelines, definitions or
+  responsibilities.
+- When a passage contains a list (criteria, elements, responsibilities), give every item
+  the passages contain. If the list visibly continues beyond the passages, say so instead
+  of presenting it as complete.
 
 SOURCES THAT DIFFER
 - When passages from different documents (e.g. ICH E6(R3) vs the Declaration of
@@ -95,7 +112,8 @@ SOURCES THAT DIFFER
   position to its document. Do not merge them into one claim.
 
 LANGUAGE
-- Answer in the language of the user's question (Spanish question -> Spanish answer).
+- Write the whole answer in the language of the user's question, including any statement
+  that something is not covered (Spanish question -> Spanish answer).
 - Quote regulatory wording verbatim in English, in quotation marks, with its citation.
 - Keep regulatory terms untranslated: SAE, SUSAR, ADR, IB, IMP, IRB/IEC, CRF, GCP.
 
@@ -116,20 +134,26 @@ FORMAT
 |---|---|
 | Role, audience, explicit list of the three documents | Fixes register and lets the model say what it does *not* cover |
 | Grounding + `[n]` citations on every factual sentence | Traceability is the point of RAG in a regulated setting; numbers map to the sources panel |
-| Insufficiency rule ("I could not find this…", list coverage, stop) | The rubric asks how the agent behaves without information; invented article numbers are the worst possible failure |
+| Graded insufficiency: answer the covered part and name the uncovered part; full "not in my knowledge base" (in the user's language) only when nothing is relevant | The rubric asks how the agent behaves without information; invented article numbers are the worst failure, but refusing a question whose steps are all in the passages is a failure too |
+| Multi-step answers, each step cited | Reporting chains span E6(R3) (investigator → sponsor) and E2A (sponsor → regulator timelines) |
+| Complete lists, or say the list continues | Criteria and elements are where partial answers mislead most |
 | Sources that differ → attribute separately | E6(R3) and Helsinki overlap on consent and vulnerable participants but are not identical |
 | Language policy | Corpus is English, users are Spanish-speaking; verbatim English quotes keep legal precision |
 | Scope and tone | No legal/medical advice; stays on topic |
 | Format | Direct answer first; chat-friendly |
 
-**How it evolved** ([`docs/prompt_iterations.md`](docs/prompt_iterations.md)): **v1** was the
-bare "answer from the documents" prompt from class — fluent but unattributed, and it
-answered out-of-scope questions from general knowledge. **v2** added role, scope and the
-insufficiency rule — but merged guidelines into one claim and answered Spanish questions in
-English. **v3** added the citation protocol, the handling of differing sources, the
-language policy and the output structure. In addition, the user message carries a
-deterministic `Reply in English.` / `Responde en español.` line because the prompt rule
-alone was not reliable.
+**How it evolved** ([`docs/prompt_iterations.md`](docs/prompt_iterations.md), which separates
+what was observed on the live model from structural reasoning): **v1**, the bare "answer
+from the documents" prompt from class, answered correctly but with no citation markers, so
+no sentence can be traced to a passage. **v2** added role, audience, scope and a refusal
+rule (a design step, not evaluated on its own). **v3** added per-sentence citations, the
+handling of documents that disagree, the language policy and the output format. The first
+full golden-set run of v3 showed three failures — a multi-step question refused outright,
+the Spanish version of that refusal written in English, and truncated lists presented as
+complete — and **v4** addresses them together with context expansion and document routing
+(results under *Evaluation*). One constraint lives in code rather than in the prompt: the
+user message carries a deterministic `Reply in English.` / `Responde en español.` line,
+because the prompt rule alone once let an English question be answered in Spanish.
 
 ## Setup and run
 
@@ -183,24 +207,57 @@ new keys — override with `LLM_MODEL=` in `.env` if yours differs).
 
 ## Example conversations
 
-Executed outputs are in the notebook (section 8). Abbreviated:
+Executed outputs are in the notebook (sections 7–8) and in the recorded demo
+(`data/demo/cached_answers.jsonl`). Abbreviated:
 
 | Question | Behaviour |
 |---|---|
-| *What is the timeline for expedited reporting of a fatal unexpected ADR under ICH E2A?* | "…as soon as possible but no later than 7 calendar days… [2]", follow-up report within 8 additional days — `ICH E2A §1, p.7` |
-| *¿Y para las demás reacciones graves e inesperadas, cuál es el plazo?* (same thread) | Rewritten to *"What is the timeline for … other serious and unexpected ADRs under ICH E2A?"* → 15 calendar days `[1]`, answered in Spanish |
-| *Summarise in two bullets what you told me so far.* | Two bullets, 7 vs 15 days, both cited — memory across three turns |
-| *¿Dice lo mismo la Declaración de Helsinki sobre ese tema?* (after a consent question) | Compares E6(R3) §2.8.10 with Helsinki ¶26 and attributes each position |
-| *¿Cuál es la mejor receta de paella valenciana?* | Refused (max score 0.58 < 0.69), lists what the assistant covers |
+| *What is the timeline for expedited reporting of a fatal unexpected ADR?* | "…as soon as possible but no later than 7 calendar days after first knowledge by the sponsor…", complete report within 8 additional days `[1]` — `ICH E2A §1, p.7` |
+| *¿Y para las demás reacciones graves e inesperadas?* (same thread) | Searched as *"What is the timeline for expedited reporting of other serious and unexpected adverse drug reactions?"* → 15 calendar days, quoted verbatim, answered in Spanish |
+| *¿Qué exigen ICH E6(R3) y la Declaración de Helsinki para incluir a participantes que no pueden dar su consentimiento?* | Both documents named → top-6 shared between them; contrasts E6(R3) Principle 2.1 (legally acceptable representative, best interest) with Helsinki ¶28 (legally authorized representative, minimal risk) and attributes each |
+| *How does ICH E2A define a serious adverse event?* | All five criteria (death, life-threatening, hospitalisation, disability/incapacity, congenital anomaly) — before section expansion the answer stopped after two |
+| *What does 21 CFR Part 50 say about informed consent?* | "I could not find information about 21 CFR Part 50 in my knowledge base…" — never invents FDA content |
+| *¿Qué fármaco GLP-1 es mejor para perder peso?* | Refused by the retrieval gate (≈0.64 < 0.69) before any answer is generated |
 
 ## Evaluation
 
-`scripts/03_evaluate.py` runs the hand-written bilingual golden set
-(`data/eval/golden.jsonl`) and writes [`docs/evaluation.md`](docs/evaluation.md): retrieval
-hit-rate@6 per language (document and section level), refusal accuracy on out-of-domain
-questions, false-refusal rate on in-domain ones, and — with `--with-answers` — keyword
-coverage of generated answers. Retrieval sanity check on 6 EN/ES pairs + 6 OOD queries:
-in-domain max scores 0.75–0.88, out-of-domain 0.52–0.63 → the gate separates them cleanly.
+**Retrieval sanity check before the agent** (`scripts/02_sanity_retrieval.py`): 6 in-domain
+EN/ES question pairs and 6 out-of-domain questions. In-domain maximum scores 0.75–0.88
+(Spanish ≈0.04 lower, same passages), out-of-domain 0.52–0.63 → the refusal gate (0.69) is
+the midpoint of that gap.
+
+**Golden set** (`data/eval/golden.jsonl`, 25 items × EN/ES = 50 runs): 19 in-domain items
+with the document and section that answer them (two need two documents), 4 out-of-domain,
+2 about documents deliberately not indexed. Every reference is checked against the indexed
+text by `tests/test_golden_consistency.py`; generated answers are saved next to the scores
+(`data/eval/answers*.jsonl`).
+
+| Metric (50 runs) | v3 baseline | **v4 + context expansion + document routing** |
+|---|---|---|
+| Answer keyword coverage | 0.815 | **0.974** |
+| Document hit-rate@6 (EN / ES) | 1.0 / 1.0 | 1.0 / 1.0 |
+| Section hit-rate@6 (EN / ES) | 0.947 / 1.0 | 0.947 / 0.947 |
+| Out-of-domain refused (EN / ES) | 1.0 / 1.0 | 1.0 / 1.0 |
+| In-domain wrongly refused | 0 | 0 |
+| Honest "not in my knowledge base" on not-indexed documents | 1.0 | 1.0 |
+
+Both rows use the same golden set and the same scoring (`docs/evaluation_baseline_v3.md`,
+[`docs/evaluation.md`](docs/evaluation.md)). What changed and why is in
+[`docs/decisions.md`](docs/decisions.md): reading every v3 answer showed lists cut by
+chunking presented as complete (E2A *serious*: 2 of 5 criteria; E6(R3) consent elements:
+4 of 22), a multi-step question refused outright, and that refusal written in English to a
+Spanish question. Remaining weaknesses, reported rather than tuned away:
+
+* **Multi-hop questions** — "from the investigator to the regulator, who reports to whom and
+  when?" now gets a partial answer instead of a refusal, but one retrieval pass does not
+  bring every hop (keyword coverage 0.67 EN / 0.33 ES on that item). The natural fix is
+  query decomposition: one retrieval per hop.
+* **Routing trade-off** — for the Spanish comparison question, the E6(R3)-filtered slots
+  pick §2.8.1 and the glossary rather than Principle 2.1 (section hit 1.0 → 0.947 ES),
+  although the agent's own answer, retrieved with the rewritten English question, cites
+  Principle 2.1.
+* **Keyword coverage is a proxy**, not a faithfulness score; an LLM-as-judge pass is the
+  next measurement to add.
 
 ## Repository layout
 
@@ -212,7 +269,7 @@ src/compliance_assistant/
   ingestion.py    PDF/HTML -> cleaned pages -> sectioned chunks with citation metadata
   vectorstore.py  embedding cache, manifest, Chroma rebuild (no API calls)
   retrieval.py    relevance scoring, calibrated gate, MMR, citations
-  prompts.py      system prompts v1-v3, rewrite prompt, message assembly
+  prompts.py      system prompts v1-v4, rewrite prompt, message assembly
   graph.py        the LangGraph StateGraph
   memory.py       checkpointer, thread config, history window
   agent.py        Assistant.ask() — the single entry point

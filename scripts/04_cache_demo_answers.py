@@ -22,7 +22,7 @@ from compliance_assistant.agent import Assistant
 DEMO_THREAD = [
     "What is the timeline for expedited reporting of a fatal unexpected ADR?",
     "¿Y para las demás reacciones graves e inesperadas?",
-    "¿Dice lo mismo la Declaración de Helsinki sobre los participantes que no pueden consentir?",
+    "¿Qué exigen ICH E6(R3) y la Declaración de Helsinki para incluir a participantes que no pueden dar su consentimiento?",
     "¿Qué fármaco GLP-1 es mejor para perder peso?",
 ]
 STANDALONE = [

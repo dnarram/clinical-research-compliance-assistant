@@ -54,6 +54,16 @@ class Settings:
     k: int = 6
     fetch_k: int = 24
     mmr_lambda: float = 0.6
+    # Name a document in the question and the top-k is shared between the named documents
+    # (metadata filter); see retrieval.routed_search.
+    doc_routing: bool = True
+    # Widen each retrieved chunk to its whole section when the section is at most this many
+    # characters, else to its neighbouring chunks (retrieval.ContextIndex). 4,000 holds the
+    # longest list a user is likely to ask for whole (E6(R3) §2.8.10, consent elements
+    # (a)-(v), 3,653 characters); 393 of 399 section runs fit. Larger runs (the glossary,
+    # §3.16.1, E2A §3) get their neighbouring chunks instead.
+    expand_context: bool = True
+    section_budget_chars: int = 4000
     # Gemini cosine relevance scores are compressed into a narrow band, so a fixed
     # a-priori threshold is meaningless. `None` means "use the value calibrated on the
     # in-domain vs out-of-domain queries" stored in data/kb/calibration.json.
@@ -63,7 +73,7 @@ class Settings:
     # 10 messages = 5 turns. The memory demo (Q1 -> referential Q2 -> "summarise what
     # you told me") must fit inside the window; tests pin that.
     history_window: int = 10
-    prompt_version: str = "v3"
+    prompt_version: str = "v4"
     collection_name: str = "clinical_compliance"
 
     # Derived paths

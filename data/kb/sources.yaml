@@ -7,12 +7,16 @@
 # `pages: [first, last]` (1-based, inclusive) restricts indexing to the substantive
 # body — cover pages, tables of contents and document-history tables only add noise.
 #
+# `aliases` are case-insensitive regexes: when a question names a document, retrieval shares
+# its top-k between the named documents (retrieval.routed_search).
+#
 # Licence notes are summarised in docs/sources.md.
 
 documents:
   - doc_id: ich_e2a
     title: "ICH E2A — Clinical Safety Data Management: Definitions and Standards for Expedited Reporting"
     short_cite: "ICH E2A"
+    aliases: ['\bE2A\b']
     year: 1994
     url: "https://database.ich.org/sites/default/files/E2A_Guideline.pdf"
     sha256: 1c095d80419287187bf5b2db5eba83864adccebf07b9c593bf5925b4ab6f7cf7
@@ -23,6 +27,7 @@ documents:
   - doc_id: ich_e6_r3
     title: "ICH E6(R3) — Guideline for Good Clinical Practice (Step 4, 6 January 2025)"
     short_cite: "ICH E6(R3)"
+    aliases: ['\bE6\b', '\bGCP\b', 'good clinical practice']
     year: 2025
     url: "https://database.ich.org/sites/default/files/ICH_E6%28R3%29_Step4_FinalGuideline_2025_0106.pdf"
     sha256: e6ce19e36ce7d2e294f89ee89492b9e035178c3cca48984392bbd92eec9b002c
@@ -33,6 +38,7 @@ documents:
   - doc_id: wma_helsinki_2024
     title: "WMA Declaration of Helsinki — Ethical Principles for Medical Research Involving Human Participants (October 2024)"
     short_cite: "Declaration of Helsinki (2024)"
+    aliases: ['helsinki']
     year: 2024
     # The WMA publishes the current text as a web page; its PDF export mangles ligatures
     # ("Clari6cation") and splits paragraph numbers from their text, so the HTML is the

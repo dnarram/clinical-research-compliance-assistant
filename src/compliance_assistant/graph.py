@@ -35,7 +35,7 @@ from compliance_assistant.prompts import (
     format_history,
     looks_english,
 )
-from compliance_assistant.retrieval import format_context, retrieve
+from compliance_assistant.retrieval import ContextIndex, format_context, retrieve
 
 log = logging.getLogger(__name__)
 
@@ -115,6 +115,11 @@ def build_graph(
     """Compile the agent. `llm` and `vectorstore` are injected so tests run offline."""
     system_prompt = SYSTEM_PROMPTS[settings.prompt_version]
     gate = threshold if threshold is not None else settings.resolved_threshold()
+    context_index = (
+        ContextIndex.from_store(vectorstore, settings.section_budget_chars)
+        if settings.expand_context
+        else None
+    )
 
     def rewrite_query(state: AgentState) -> dict[str, Any]:
         messages = state["messages"]
@@ -133,13 +138,17 @@ def build_graph(
         return {"question": question, "standalone_question": standalone, "language": language}
 
     def retrieve_node(state: AgentState) -> dict[str, Any]:
-        result = retrieve(vectorstore, state["standalone_question"], settings, threshold=gate)
+        result = retrieve(
+            vectorstore, state["standalone_question"], settings, threshold=gate, index=context_index
+        )
         log.info(
-            "[retrieve] max_score=%.3f threshold=%s grounded=%s docs=%d",
+            "[retrieve] max_score=%.3f threshold=%s grounded=%s chunks=%d passages=%d routed=%s",
             result.max_score,
             f"{gate:.3f}" if gate is not None else "off",
             result.grounded,
             len(result.docs),
+            len(result.sources),
+            ",".join(result.routed_to) or "-",
         )
         return {
             "context": format_context(result.sources),

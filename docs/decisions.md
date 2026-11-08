@@ -141,3 +141,20 @@ created in a *new* project doubles the daily embedding budget. `load_api_keys()`
 primary + `GEMINI_API_KEY_BACKUP`; `FailoverEmbeddings` / `FailoverChatModel` switch to the
 next client only on a daily-quota error (per-minute limits are retried instead). Keys are
 never logged; the build script prints only how many it has.
+
+## 2026-11-08 — Evaluation-driven fixes: context expansion, document routing, prompt v4
+
+The first full golden-set run (v3, 50 runs) had perfect retrieval metrics but answer keyword
+coverage of 0.77. Reading every answer (they are now saved to `data/eval/answers*.jsonl`)
+separated real failures from artefacts of the keyword list:
+
+| Observation | Cause | Fix |
+|---|---|---|
+| E2A *serious* definition answered with 2 of its 5 criteria; E6(R3) consent elements answered with (a)–(d) of (a)–(v), both presented as complete | 500-character chunks cut lists; the rest sat in the next chunk | **Context expansion**: widen each chunk to its section if ≤ 4,000 chars, else to its neighbours (`retrieval.ContextIndex`). Measured: 393 of 399 section runs fit; §2.8.10 is 3,653 chars, so a 3,000 budget would still have cut it |
+| "Compare E6(R3) and Helsinki on participants who cannot consent" got generic E6(R3) consent passages, not §2.8.13 (legally acceptable representative) | MMR over the whole collection; Helsinki ¶28–30 scored higher and took the slots | **Document routing**: when a question names documents (aliases in `sources.yaml`), share the top-k between them with a metadata filter. The refusal gate keeps using unfiltered scores, so the calibration is unaffected |
+| "From the investigator to the regulator, who reports to whom and when?" refused outright; Spanish questions intermittently refused **in English** (that one in the first run, the 21 CFR / EU CTR ones in the re-run) | All-or-nothing insufficiency rule; the rule quoted the English sentence and the model copied it | **Prompt v4**: answer the covered part and name the uncovered part; build multi-step answers citing each step; state "not covered" in the user's language; give complete lists or say they continue |
+| Correct Spanish answers scored as misses ("inmediatamente", "patrocinadores"); "IB" vs "Investigator's Brochure"; British "hospitalisation" vs my "hospitalization" | Keyword list written for English answers only | **Golden set**: variants with `a\|b`, whole-word matching, typographic quotes normalised. Made stricter where the expert answer requires it: all five *serious* criteria, a late consent element ("voluntary"), and multi-source items need a correct section **from each** document (`doc_id:section`) |
+
+Both configurations were re-run with the **same** revised keywords (`--prompt-version v3
+--no-expand --no-routing` vs defaults), so the comparison in `docs/evaluation.md` isolates
+the pipeline change. Cost: prompts get longer (up to ~4,000 characters per passage).

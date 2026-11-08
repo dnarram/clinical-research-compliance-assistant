@@ -1,38 +1,37 @@
 <section id="prompt" data-transition="fade" style="background:#f6f7f5;color:#1c2128;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1">The system prompt: three versions, each fixing a real failure</h2>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1">The system prompt: each version answers an observed failure</h2>
 <div style="display:flex;gap:32px;align-items:stretch">
 <div style="flex:1;background:#ffffff;padding:36px;border-radius:16px;border:1px solid #dfe3e0;display:flex;flex-direction:column;gap:14px">
 <p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#b35e1c">v1 · class baseline</p>
 <h3 style="font-size:32px;font-weight:600">“Answer from the documents”</h3>
 <ul style="font-size:25px;line-height:1.4;color:#4a5568">
-<li>Observed: correct and fluent, but no citation markers — a CRA cannot tell which passage supports which sentence</li>
-<li>No rule for missing information: nothing stops it completing from general knowledge</li>
-<li>No role, no scope, no language policy</li>
+<li>Correct and fluent, but no citation markers: no sentence can be traced to a passage</li>
+<li>No rule for missing information, no scope, no language policy</li>
 </ul>
 </div>
 <div style="flex:1;background:#ffffff;padding:36px;border-radius:16px;border:1px solid #dfe3e0;display:flex;flex-direction:column;gap:14px">
-<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#b35e1c">v2 · role and scope</p>
-<h3 style="font-size:32px;font-weight:600">Audience, grounding, “I could not find this”</h3>
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#b35e1c">v3 · citations and language</p>
+<h3 style="font-size:32px;font-weight:600">[n] on every sentence, sources attributed, answer in the user’s language</h3>
 <ul style="font-size:25px;line-height:1.4;color:#4a5568">
-<li>Adds the audience, the grounding rule and the refusal wording</li>
-<li>Still no per-sentence traceability — only a trailing sources list</li>
-<li>No rule for documents that disagree; no language policy for Spanish questions</li>
+<li>The golden-set run found: a multi-step question refused outright</li>
+<li>Its Spanish refusal written in English</li>
+<li>Truncated lists presented as complete</li>
 </ul>
 </div>
 <div style="flex:1;background:#15181c;padding:36px;border-radius:16px;display:flex;flex-direction:column;gap:14px">
-<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#7cc5ff">v3 · in use</p>
-<h3 style="font-size:32px;font-weight:600;color:#f4f5f2">Citation protocol, differing sources, language policy, format</h3>
+<p style="font-size:24px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#7cc5ff">v4 · in use</p>
+<h3 style="font-size:32px;font-weight:600;color:#f4f5f2">Graded refusals, multi-step answers, complete lists</h3>
 <ul style="font-size:25px;line-height:1.4;color:#c9d1d9">
-<li>Every factual sentence carries [n]; regulatory wording quoted verbatim in English</li>
-<li>When E6(R3) and Helsinki differ, each position is attributed</li>
-<li>Answer in the user’s language; SAE, SUSAR, IB, IMP untranslated</li>
+<li>Answer the covered part, name the uncovered part; refuse only when nothing is relevant</li>
+<li>Build chains step by step, citing each step</li>
+<li>Give every list item, or say the list continues — in the user’s language</li>
 </ul>
 </div>
 </div>
 <div style="display:flex;gap:24px;align-items:center;background:#e3eef5;padding:28px 36px;border-radius:16px">
 <x-icon name="Lightbulb" style="width:48px;height:48px;color:#2a6f97"></x-icon>
-<p style="font-size:27px;line-height:1.35;color:#1c2128"><b>Hard constraints in code, judgement in the prompt.</b> An English question once came back in Spanish despite the rule, so the user message now carries a deterministic “Reply in English / Responde en español” line, and out-of-domain questions never reach the model at all.</p>
+<p style="font-size:27px;line-height:1.35;color:#1c2128"><b>Hard constraints in code, judgement in the prompt.</b> The answer language is a deterministic line in the user message, out-of-domain questions never reach the model, and truncated lists were fixed in retrieval (section expansion), not with more prompt.</p>
 </div>
-<p style="position:absolute;left:128px;bottom:64px;font-size:24px;color:#6a7179">Full prompt and rationale: README · docs/prompt_iterations.md</p>
-<aside>The prompt went through three versions. Version one is the bare class prompt: on the SUSAR question it was correct and fluent but carried no citation markers, so nothing tells you which passage supports which sentence, and it has no rule for missing information. Version two added role, scope and the refusal wording — a design step, still without per-sentence traceability. Version three adds the citation protocol, differing-source handling, the language policy and the output format; on the live model it cited every sentence, contrasted E6(R3) with Helsinki, and said plainly that 21 CFR Part 50 is not in its sources. One lesson: hard constraints belong in code.</aside>
+<p style="position:absolute;left:128px;bottom:64px;font-size:24px;color:#6a7179">Full prompt and rationale: README · docs/prompt_iterations.md (v2 was a design step, not evaluated on its own)</p>
+<aside>Four versions; I show three. Version one, the class prompt, was correct but carried no citation markers, so nothing could be traced. Version three added per-sentence citations, attribution when documents differ, and the language policy. Then I ran the full golden set and read every answer: one multi-step question was refused although every step was in the passages, its Spanish refusal came back in English, and lists cut by chunking were presented as complete. Version four grades the refusal, builds chains step by step and asks for complete lists. The truncation itself I fixed in retrieval, not in the prompt.</aside>
 </section>

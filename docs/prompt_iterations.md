@@ -1,8 +1,8 @@
 # System prompt iterations
 
-The three versions live in `src/compliance_assistant/prompts.py` and can be selected with
-`PROMPT_VERSION=v1|v2|v3` (or `load_settings(prompt_version=...)`). The notebook
-(section 5) runs the same question through v1 and v3 so the difference is visible. This
+The four versions live in `src/compliance_assistant/prompts.py` and can be selected with
+`PROMPT_VERSION=v1|v2|v3|v4` (or `load_settings(prompt_version=...)`). The notebook
+(section 5) runs the same question through v1 and v4 so the difference is visible. This
 page separates what was **observed** on the live model from what each version was
 **designed** to fix, so nothing is claimed that was not seen.
 
@@ -37,7 +37,7 @@ gaps are structural: no citation protocol (traceability still rests on a trailin
 sources list), no rule for passages from different documents that disagree, and no
 language policy for Spanish questions over an English corpus.
 
-## v3 — citation protocol, differing sources, language policy, format (in use)
+## v3 — citation protocol, differing sources, language policy, format
 
 Added: numbered `[n]` citations on every factual sentence (the numbers map to the sources
 panel built by `retrieval.format_context`); the rule to attribute differing positions to
@@ -68,3 +68,41 @@ the judgement calls.
 **Known residue:** the model often appends a closing "this is regulatory information, not
 legal or medical advice" line although the format rule says not to add disclaimers unless
 required. Harmless, arguably desirable in this domain; left as is.
+
+## v4 — graded refusals, multi-step answers, complete lists (in use)
+
+**Observed on v3** in the first full golden-set run (25 items × EN/ES; answers saved in
+`data/eval/answers_baseline_v3.jsonl`):
+
+- *From the investigator to the regulatory authority: who reports a serious adverse reaction
+  to whom, and within which timelines?* was **refused outright** ("I could not find this in
+  my knowledge base…") although E6(R3) §2.7.2 (investigator → sponsor, immediately), §3.13.2
+  (sponsor → regulators per E2A) and E2A §III.B (7 and 15 days) were all retrievable. The
+  insufficiency rule was all-or-nothing.
+- Spanish questions were refused **in English**: the rule quoted the English sentence and
+  the model copied it, overriding the language line. It happened to the reporting-chain
+  question in the first v3 run and to both not-indexed-document questions (21 CFR Part 50,
+  EU CTR) in the baseline re-run — the symptom is intermittent, the cause is the same.
+- Lists cut by chunking — the E2A definition of *serious* (2 of 5 criteria) and the E6(R3)
+  consent elements ((a)–(d) of (a)–(v)) — were **presented as complete**.
+
+**Changes:** answer the covered part and name the uncovered part; refuse fully only when
+nothing is relevant, in the user's language; build multi-step answers step by step, citing
+each step; give every list item the passages contain or say the list continues. The
+truncation itself was fixed in retrieval (section-level context expansion), not in the
+prompt — see `docs/decisions.md`.
+
+**Measured** (same golden set and scoring for both, `docs/evaluation_baseline_v3.md` vs
+`docs/evaluation.md`): answer keyword coverage 0.815 → 0.974; no in-domain question refused,
+all out-of-domain questions refused and both not-indexed documents answered honestly in both
+configurations. The reporting-chain question is now answered step by step (investigator →
+sponsor immediately; sponsor → regulators within 7 days for fatal or life-threatening
+SUSARs) but still misses the 15-day timeline: one retrieval pass does not bring every hop.
+With v4 the Spanish answers to the two not-indexed documents and to the reporting chain are
+written in Spanish (in v3's baseline re-run the first two were in English).
+
+Not attributable to v4 alone: the comparison changes the prompt, context expansion and
+document routing together, because the failures they address appeared together. The
+notebook (section 5) shows v1 vs v4 on a single question; a prompt-only ablation (v4 with
+expansion and routing off) is a cheap next measurement with `scripts/03_evaluate.py
+--prompt-version v4 --no-expand --no-routing --with-answers`.
