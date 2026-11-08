@@ -37,7 +37,7 @@ pipeline): from the safety data to the rules that govern it.
 | Memory | `InMemorySaver` checkpointer per `thread_id`; last 10 messages sent to the model |
 | Languages | Answers in the user's language (EN/ES); regulatory wording quoted verbatim in English |
 | Interfaces | Notebook chat cell, terminal REPL (`scripts/chat.py`), Streamlit app (`app.py`) |
-| Evaluation | 25-item bilingual golden set (50 runs) → retrieval hit-rates, refusal accuracy, answer keyword coverage, honesty on not-indexed documents; baseline vs improved |
+| Evaluation | 25-item bilingual golden set (50 runs) → retrieval hit-rates, refusal accuracy, answer keyword coverage, honesty on not-indexed documents; baseline vs improved. Plus a reference-based LLM judge and a 12-item held-out set written after the fixes were frozen |
 
 ## Architecture
 
@@ -186,7 +186,20 @@ Gemini key.
 
 **Models.** `gemini-3.5-flash-lite` answers and rewrites questions; `gemini-embedding-2`
 (768 dimensions) embeds documents and queries; `gemini-3.5-flash` / `gemini-3.5-flash-lite`
-judge answers in the evaluation. Override the answering model with `LLM_MODEL=` in `.env`.
+judge answers in the evaluation.
+
+**Optional environment variables** (all read by `config.load_settings()` from `.env` or the
+environment; none is needed for a normal run):
+
+| Variable | Effect | Default |
+|---|---|---|
+| `LLM_MODEL` | answering / rewriting model | `gemini-3.5-flash-lite` |
+| `EMBEDDING_MODEL` | embedding model (the cache records which one built it; changing it triggers a re-embed) | `gemini-embedding-2` |
+| `PROMPT_VERSION` | `v1` … `v4`, for comparisons | `v4` |
+| `SCORE_THRESHOLD` | overrides the calibrated refusal gate | read from `data/kb/calibration.json` |
+| `QUERY_CACHE_PERSIST` | `0` makes the query-vector cache read-only (the Streamlit app sets this so visitors' questions are never written to the versioned file) | `1` |
+| `OFFLINE_DEMO` | `1` replays the recorded demo answers for exact-match questions, no API calls | `0` |
+| `NB_INTERACTIVE` | `0` runs the notebook's chat cell headlessly (used when executing it with `nbconvert`) | `1` |
 
 **Python dependencies** — declared in `pyproject.toml`, pinned in `uv.lock`, exported to
 `requirements.txt` for Streamlit Cloud:
@@ -246,16 +259,22 @@ from the committed embedding cache at first start — no embedding API calls.
 free tier (a batch of 50 chunks counts as 50): the one-time corpus build uses ~800, which is
 why the embedding cache is committed and query vectors are cached on disk
 (`data/kb/query_cache.jsonl.gz`) — repeated questions cost no embedding calls. The build
-batches 50 chunks per request, is resumable and backs off on 429. A second key from another
+batches 50 chunks per request, backs off on per-minute 429s and stops cleanly on a
+daily-quota error; the next run resumes from the partial cache (`manifest.json` marks a
+document `complete` only when every chunk is embedded). A second key from another
 Google Cloud project (`GEMINI_API_KEY_BACKUP=` in `.env` / Streamlit secrets) is a second daily
-budget: clients fail over to it automatically on a daily-quota error. Each chat turn costs 1–2 LLM calls
-(`gemini-3.5-flash-lite`; the class default `gemini-2.5-flash-lite` is no longer served to
-new keys — override with `LLM_MODEL=` in `.env` if yours differs).
+budget: embeddings and chat fail over to it automatically on a daily-quota error, never on
+other errors. Each chat turn costs 1–2 LLM calls (the rewrite is skipped on a first English
+turn) plus one query embedding; transient errors are retried with 5/10/20 s back-off.
+`gemini-3.5-flash-lite` is the default because the class default `gemini-2.5-flash-lite` is no
+longer served to new keys — set `LLM_MODEL=` if yours differs.
 
 ## Example conversations
 
-Rows 1–2 come from the recorded demo (`data/demo/cached_answers.jsonl`), rows 3–6 from the
-executed notebook (sections 7–8). Abbreviated:
+Rows 1–3 are the recorded demo script (`data/demo/cached_answers.jsonl`, one thread), row 4
+is the question in the screenshot above (public app; the same item in the golden set went
+from 2 of 5 criteria in v3 to all five in v4), rows 5–6 come from the executed notebook
+(section 8). Abbreviated:
 
 | Question | Behaviour |
 |---|---|
@@ -306,7 +325,9 @@ The judge compares each answer with an expert reference answer. The intended jud
 were judged with `gemini-3.5-flash-lite` — the same model that writes the answers, which
 invites self-preference. To check it, both judges scored the 38 v3 golden answers: 78.9 %
 exact agreement, with `flash` stricter (0.697 vs 0.776). Read the absolute numbers as
-optimistic by roughly that margin; the v3 → v4 comparison uses one judge throughout. The
+optimistic by roughly that margin; the v3 → v4 comparison uses one judge throughout (the
+`flash` runs on the other three sets stopped at the daily quota after 1–4 verdicts; those
+partial files are kept in `data/eval/` for audit but not reported). The
 held-out gain is smaller because its questions sit in single sections, where chunk truncation
 rarely bit — no regression there. What changed and why is in
 [`docs/decisions.md`](docs/decisions.md): reading every v3 answer showed lists cut by
@@ -316,12 +337,18 @@ Spanish question. Remaining weaknesses, reported rather than tuned away:
 
 * **Multi-hop questions** — "from the investigator to the regulator, who reports to whom and
   when?" now gets a partial answer instead of a refusal, but one retrieval pass does not
-  bring every hop (keyword coverage 0.67 EN / 0.33 ES on that item). The natural fix is
-  query decomposition: one retrieval per hop.
-* **Routing trade-off** — for the Spanish comparison question, the E6(R3)-filtered slots
-  pick §2.8.1 and the glossary rather than Principle 2.1 (section hit 1.0 → 0.947 ES),
-  although the agent's own answer, retrieved with the rewritten English question, cites
-  Principle 2.1.
+  bring every hop (keyword coverage 0.67 EN / 0.33 ES on that item). The English answer was
+  judged correct; the Spanish one is the single *incorrect* verdict of the v4 run — it
+  covers the sponsor's timelines but omits the investigator → sponsor step. The natural fix
+  is query decomposition: one retrieval per hop.
+* **Routing trade-off** — for the two-document comparison question ("E6(R3) and Helsinki on
+  participants who cannot consent"), the E6(R3)-filtered slots now pick §2.8.1, §2.8.13 and
+  the glossary rather than Principle 2.1, in both languages. Aggregate section hit-rate went
+  1.0 → 0.947 in Spanish and stayed at 0.947 in English only because the multi-step item
+  gained its section at the same time. The Spanish answer still quotes Principle 2.1 (the
+  agent retrieves with the rewritten English question, not the raw Spanish one the harness
+  scores) and was judged correct; the English answer was judged partially correct for
+  leaving out the "best interest" and assent points.
 * **Keyword coverage and the reference-based judge measure correctness**, not faithfulness
   to the retrieved passages; a faithfulness judge (answer vs. context) is the next measurement
   to add.
@@ -352,7 +379,8 @@ data/kb/          sources.yaml, embeddings/ (cache), manifest.json, calibration.
 data/eval/        golden.jsonl, heldout.jsonl, answers*.jsonl, *.judge-<model>.jsonl (+ README)
 data/demo/        cached_answers.jsonl (recorded demo)
 docs/             rubric (brief → evidence), sources, architecture, decisions, prompt
-                  iterations, evaluation reports (golden + held-out), demo script, slides/, img/
+                  iterations, evaluation reports (golden + held-out), demo script and
+                  speaker notes (EN / ES), slides/, img/
 ```
 
 Development: `uv run pytest` · `uv run ruff check .` · `pre-commit install`.
@@ -360,9 +388,11 @@ Development: `uv run pytest` · `uv run ruff check .` · `pre-commit install`.
 ## Limitations
 
 Three documents (EU CTR, GVP and FDA regulations are out of scope by design); PDF tables
-flatten into prose; the refusal threshold is corpus-specific; memory is in-process (a
-restart forgets threads). This assistant gives regulatory information, **not legal or
-medical advice**.
+flatten into prose; the refusal threshold is corpus-specific and must be recalibrated if the
+corpus or the embedding model changes; memory is in-process (a restart forgets threads, and
+the Streamlit app shares one agent across sessions, so threads are never freed); a single
+retrieval pass can miss one hop of a multi-step question. This assistant gives regulatory
+information, **not legal or medical advice**.
 
 ---
 
