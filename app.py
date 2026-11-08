@@ -17,6 +17,9 @@ import streamlit as st
 
 # --- environment -------------------------------------------------------------------------
 # Streamlit Cloud: secrets -> environment, before the settings module reads it.
+# The app reads the committed query-vector cache but never writes visitors' questions to it.
+os.environ.setdefault("QUERY_CACHE_PERSIST", "0")
+
 for _name in ("GEMINI_API_KEY", "GEMINI_API_KEY_BACKUP"):
     if _name not in os.environ:
         with contextlib.suppress(KeyError, FileNotFoundError):
@@ -137,10 +140,25 @@ if not st.session_state.messages:
     st.caption("Try: " + " · ".join(f"*{e}*" for e in examples))
 
 
-def render_sources(sources: list[dict]) -> None:
+NOT_FOUND_CUES = (
+    "could not find",
+    "not in my knowledge base",
+    "no pude encontrar",
+    "no he encontrado",
+    "no se incluye",
+)
+
+
+def render_sources(sources: list[dict], answer_text: str = "") -> None:
     if not sources:
         return
-    with st.expander(f"Sources ({len(sources)} passages)"):
+    low = answer_text.lower()
+    label = (
+        f"Passages considered ({len(sources)}) — the answer says they do not cover the question"
+        if any(c in low for c in NOT_FOUND_CUES)
+        else f"Sources ({len(sources)} passages)"
+    )
+    with st.expander(label):
         for s in sources:
             score = f" · relevance {s['score']:.2f}" if s.get("score") else ""
             st.markdown(f"**[{s['n']}] {s['citation']}**{score}")
@@ -151,10 +169,9 @@ for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
         if m["role"] == "assistant":
-            render_sources(m.get("sources", []))
+            render_sources(m.get("sources", []), m["content"])
 
 if question := st.chat_input("Your question (EN / ES)"):
-    st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user"):
         st.markdown(question)
     with st.chat_message("assistant"):
@@ -162,6 +179,9 @@ if question := st.chat_input("Your question (EN / ES)"):
             try:
                 answer = assistant.ask(question, st.session_state.thread_id)
             except Exception as exc:
+                # Keep transcript and graph thread consistent: drop the unanswered question
+                # from the checkpoint so the next turn's history is not "User: … User: …".
+                assistant.discard_pending_question(st.session_state.thread_id)
                 msg = str(exc)
                 hint = (
                     " (free-tier rate limit — wait a minute and retry)"
@@ -175,7 +195,7 @@ if question := st.chat_input("Your question (EN / ES)"):
             {"n": s.n, "citation": s.citation, "text": s.text, "score": s.score}
             for s in answer.sources
         ]
-        render_sources(sources)
+        render_sources(sources, answer.text)
         if answer.cached:
             st.caption("Cached answer (offline demo mode).")
         if not answer.grounded:
@@ -184,6 +204,7 @@ if question := st.chat_input("Your question (EN / ES)"):
             )
         elif answer.standalone_question != answer.question:
             st.caption(f"Searched as: *{answer.standalone_question}*")
+    st.session_state.messages.append({"role": "user", "content": question})
     st.session_state.messages.append(
         {"role": "assistant", "content": answer.text, "sources": sources}
     )

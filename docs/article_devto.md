@@ -48,7 +48,7 @@ gap, stored next to the embedding model name so a model change forces a recalibr
 A fixed "0.5" would never refuse anything; "0.8" would refuse half the Spanish questions.
 
 **Hard constraints in code, judgement in the prompt.** The system prompt went through
-three versions (role and audience, grounding and citation protocol, how to handle
+four versions (role and audience, grounding and citation protocol, how to handle
 documents that disagree). But the one failure the prompt could not reliably fix — an
 English question answered in Spanish — was solved by a deterministic "Reply in English /
 Responde en español" line appended in code.

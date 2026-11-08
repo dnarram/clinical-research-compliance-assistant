@@ -59,7 +59,7 @@ Generative AI module) with the evidence in this repository. Notebook sections re
 | RAG with Gemini (retrieval + generation) | precise retrieval, answers coherent with the context | golden set (50 runs): document hit 1.0, section hit 0.95; judged correctness 0.78 → 0.95; held-out 0.95 → 1.00 — README *Evaluation* |
 | Prompt engineering | system prompt well designed and justified in the README | four documented versions, each motivated by an observed failure; clause-by-clause rationale |
 | Agent with memory (LangGraph) | working memory, coherence across turns | checkpointer per thread, query rewriting resolves references, window tested (`test_graph.py`), thread isolation shown in §7 |
-| Code quality and documentation | clean code, clear README with run instructions | typed package, 73 offline tests, ruff + pre-commit, `CLAUDE.md` invariants, [`decisions.md`](decisions.md) written while building |
+| Code quality and documentation | clean code, clear README with run instructions | typed package, 77 offline tests, ruff + pre-commit, `CLAUDE.md` invariants, [`decisions.md`](decisions.md) written while building |
 | Presentation and demo | fluid demo, clear explanation of technical decisions | rehearsed run sheet, recorded fallback, slides on the three key decisions and the evaluation |
 | Bonus: Streamlit | functional and deployed interface | public app; deploy-safe caching (`tests/test_app.py`) |
 

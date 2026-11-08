@@ -12,7 +12,7 @@
 | Ingestion | `ingestion.py` | PDF (pypdf) / HTML (stdlib parser) → cleaned pages → section-aware recursive chunks (500/50) with `doc_id`, `section`, `page` metadata; deterministic chunk ids |
 | Embeddings + store | `vectorstore.py` | `EmbeddingCache` (jsonl.gz per doc, resumable, 429 back-off) · `manifest.json` (hash/model/dim/chunking) · Chroma rebuilt from cache via native `add(embeddings=…)` |
 | Retrieval | `retrieval.py` | `similarity_search_with_relevance_scores` (unfiltered) → calibrated gate → document routing (metadata filter when the question names documents) → `max_marginal_relevance_search` → `ContextIndex` section expansion → numbered `Source`s and citation strings |
-| Prompts | `prompts.py` | `SYSTEM_PROMPTS` v1–v3, `REWRITE_PROMPT`, `build_messages` (adds the answer-language line), `looks_english` |
+| Prompts | `prompts.py` | `SYSTEM_PROMPTS` v1–v4, `REWRITE_PROMPT`, `build_messages` (adds the answer-language line), `looks_english` |
 | Agent | `graph.py`, `memory.py`, `agent.py` | LangGraph `StateGraph` + `InMemorySaver`; `Assistant.ask()` facade used by notebook, app, REPL and evaluation |
 | Evaluation | `evaluation.py`, `scripts/03_evaluate.py` | Bilingual golden set → hit-rates, refusal accuracy, keyword coverage |
 | UIs | `notebooks/compliance_assistant.ipynb`, `app.py`, `scripts/chat.py` | Same `Assistant`, three surfaces |
@@ -53,6 +53,15 @@ Per turn: 1 query embedding + 1–2 LLM calls.
 the Streamlit app stores one per browser session (`st.session_state`) and rotates it on
 "New conversation". `memory.window_history(messages, 10)` trims to the last 10 messages
 starting on a human turn before the prompt is built.
+
+## Shared state in the Streamlit app (known limitation)
+
+`st.cache_resource` holds one `Assistant` for every browser session, so the failover index,
+the query-vector cache and the `InMemorySaver` are shared across request threads. Threads are
+isolated by `thread_id` (one per session, rotated by *New conversation*), but abandoned
+threads are never evicted while the process lives, and the two failover indices are
+process-wide by design (a daily quota is per key, not per user). Acceptable for a demo; a
+production deployment would use `SqliteSaver`/`PostgresSaver` with TTL and per-worker clients.
 
 ## Retrieval gate calibration
 

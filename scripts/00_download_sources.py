@@ -27,10 +27,14 @@ USER_AGENT = "Mozilla/5.0 (compatible; compliance-assistant/0.1; academic projec
 
 
 def download(url: str, dest: Path) -> None:
+    """Fetch to a temporary name and rename on success, so an interrupted download never
+    leaves a half file that the next run would treat as present."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=60) as resp, dest.open("wb") as out:
+    tmp = dest.with_suffix(dest.suffix + ".part")
+    with urllib.request.urlopen(req, timeout=60) as resp, tmp.open("wb") as out:
         while block := resp.read(1 << 16):
             out.write(block)
+    tmp.replace(dest)
 
 
 def main() -> int:
@@ -66,7 +70,8 @@ def main() -> int:
             recorded[src.doc_id] = digest
         elif digest != src.sha256:
             print(
-                f"[FAIL] {src.doc_id}: sha256 mismatch — expected {src.sha256[:16]}..., got {digest[:16]}..."
+                f"[FAIL] {src.doc_id}: sha256 mismatch — expected {src.sha256[:16]}..., got {digest[:16]}... "
+                "(the publisher changed the file; review it, then re-run with --force --record)"
             )
             failures += 1
         else:

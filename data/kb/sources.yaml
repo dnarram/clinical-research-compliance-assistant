@@ -1,8 +1,8 @@
 # Knowledge-base inventory. Every document the assistant can cite is listed here.
 # scripts/00_download_sources.py fetches each `url` into data/kb/raw/<doc_id>.pdf and
-# verifies `sha256` (`--record` fills it in on first download). The PDFs are also
-# committed so the repo is reproducible without network access; the hash is the
-# provenance record either way.
+# verifies `sha256` (`--record` fills it in on first download). The raw files are NOT
+# committed (publisher content); the versioned embedding cache is enough to run the
+# assistant, and the hash is the provenance record.
 #
 # `pages: [first, last]` (1-based, inclusive) restricts indexing to the substantive
 # body — cover pages, tables of contents and document-history tables only add noise.

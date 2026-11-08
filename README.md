@@ -160,9 +160,15 @@ complete — and **v4** addresses them together with context expansion and docum
 user message carries a deterministic `Reply in English.` / `Responde en español.` line,
 because the prompt rule alone once let an English question be answered in Spanish.
 
+**Known residue, visible in the notebook outputs:** the model usually appends a one-line
+"regulatory information, not legal or medical advice" note although the FORMAT rule says not
+to add disclaimers; once it placed it first. It is left in place for now — the domain wants
+the disclaimer and changing the prompt would require re-running the evaluation — and
+documented in [`docs/prompt_iterations.md`](docs/prompt_iterations.md).
+
 ## Requirements
 
-**System.** Python 3.12 and [`uv`](https://docs.astral.sh/uv/) (`uv` installs the right
+**System.** Python 3.12 or 3.13 and [`uv`](https://docs.astral.sh/uv/) (`uv` installs the right
 Python by itself; the system Python is not used). Internet access for the Gemini API.
 
 **Gemini API key.** Free at <https://aistudio.google.com/apikey>. It is read from the
@@ -248,8 +254,8 @@ new keys — override with `LLM_MODEL=` in `.env` if yours differs).
 
 ## Example conversations
 
-Executed outputs are in the notebook (sections 7–8) and in the recorded demo
-(`data/demo/cached_answers.jsonl`). Abbreviated:
+Rows 1–2 come from the recorded demo (`data/demo/cached_answers.jsonl`), rows 3–6 from the
+executed notebook (sections 7–8). Abbreviated:
 
 | Question | Behaviour |
 |---|---|
@@ -316,29 +322,37 @@ Spanish question. Remaining weaknesses, reported rather than tuned away:
   pick §2.8.1 and the glossary rather than Principle 2.1 (section hit 1.0 → 0.947 ES),
   although the agent's own answer, retrieved with the rewritten English question, cites
   Principle 2.1.
-* **Keyword coverage is a proxy**, not a faithfulness score; an LLM-as-judge pass is the
-  next measurement to add.
+* **Keyword coverage and the reference-based judge measure correctness**, not faithfulness
+  to the retrieved passages; a faithfulness judge (answer vs. context) is the next measurement
+  to add.
 
 ## Repository layout
 
 ```
 notebooks/compliance_assistant.ipynb   the graded notebook (with outputs)
+notebooks/build_notebook.py            generates the notebook from Python source
 app.py                                 Streamlit UI
 src/compliance_assistant/
-  config.py       settings, API key loading
+  config.py       settings, API key loading (primary + backup)
   ingestion.py    PDF/HTML -> cleaned pages -> sectioned chunks with citation metadata
-  vectorstore.py  embedding cache, manifest, Chroma rebuild (no API calls)
-  retrieval.py    relevance scoring, calibrated gate, MMR, citations
+  vectorstore.py  embedding cache, manifest, resumable builds, Chroma rebuild (no API calls)
+  retrieval.py    relevance scoring, calibrated gate, document routing, MMR, section expansion
   prompts.py      system prompts v1-v4, rewrite prompt, message assembly
-  graph.py        the LangGraph StateGraph
+  graph.py        the LangGraph StateGraph, transient-error retry
   memory.py       checkpointer, thread config, history window
-  agent.py        Assistant.ask() — the single entry point
-  evaluation.py   golden-set harness
-scripts/          00_download_sources · 01_build_kb · 02_sanity_retrieval · 03_evaluate · chat
-tests/            offline pytest suite (fake LLM and embeddings)
-data/kb/          sources.yaml, embeddings/ (cache), manifest.json, calibration.json
-data/eval/        golden.jsonl (+ README)
-docs/             sources, decisions, prompt iterations, evaluation, demo script
+  agent.py        Assistant.ask() — the single entry point; key failover
+  evaluation.py   golden-set harness (retrieval, keywords, honesty)
+  judge.py        LLM-as-judge against expert references, judge agreement
+  demo_cache.py   offline replay of the recorded demo (OFFLINE_DEMO=1)
+scripts/          00_download_sources · 01_build_kb · 02_sanity_retrieval · 03_evaluate ·
+                  04_cache_demo_answers · 05_judge · chat
+tests/            offline pytest suite (fake LLM and embeddings, Streamlit AppTest)
+data/kb/          sources.yaml, embeddings/ (cache), manifest.json, calibration.json,
+                  query_cache.jsonl.gz
+data/eval/        golden.jsonl, heldout.jsonl, answers*.jsonl, *.judge-<model>.jsonl (+ README)
+data/demo/        cached_answers.jsonl (recorded demo)
+docs/             rubric (brief → evidence), sources, architecture, decisions, prompt
+                  iterations, evaluation reports (golden + held-out), demo script, slides/, img/
 ```
 
 Development: `uv run pytest` · `uv run ruff check .` · `pre-commit install`.

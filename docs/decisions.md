@@ -94,7 +94,7 @@ rollout ("no longer available"). 3.x models ignore `temperature`, so it is only 
 2.x models. Message content comes back as a list of blocks; `_text()` reads the `.text`
 property so the code works with both generations.
 
-## Golden set written by hand
+## Golden set: drafted from the verified indexed text, reviewed by the author
 
 `data/eval/golden.jsonl` carries the (document, section) that answers each question. That
 ground truth is the author's domain contribution; the code ships the harness and a 3-item
@@ -145,7 +145,8 @@ never logged; the build script prints only how many it has.
 ## 2026-11-08 — Evaluation-driven fixes: context expansion, document routing, prompt v4
 
 The first full golden-set run (v3, 50 runs) had perfect retrieval metrics but answer keyword
-coverage of 0.77. Reading every answer (they are now saved to `data/eval/answers*.jsonl`)
+coverage of 0.77 (0.815 once the keyword lists were revised as described below and both runs
+re-scored). Reading every answer (they are now saved to `data/eval/answers*.jsonl`)
 separated real failures from artefacts of the keyword list:
 
 | Observation | Cause | Fix |
@@ -202,3 +203,29 @@ Fix in `app.py`: a fingerprint of the package source and the knowledge-base meta
 different fingerprint, its modules are dropped from `sys.modules` and re-imported; the
 cached Assistant is keyed on the fingerprint with `max_entries=1`. `tests/test_app.py`
 loads the app offline and simulates a stale deploy.
+
+## 2026-11-09 — Pre-delivery audit: two independent reviews, fixes applied
+
+Two reviewers were run without being told what to expect: a code audit and an "external
+examiner" audit of the deliverables against the brief. Requirements: all met. Findings and
+fixes:
+
+| Finding | Severity | Fix |
+|---|---|---|
+| An interrupted first build (daily quota) lost its partial embedding cache on the next run: the manifest was written only at the end, so the missing entry triggered `cache.reset` | High | The build key is persisted (`complete: false`) before embedding; only a *changed* key resets the cache; Chroma rebuilds exclude incomplete documents. Regression tests reproduce the interruption |
+| On a fresh clone the notebook aborted if a publisher's file hash drifted (`check=True`), and §2.1 needed the PDF on disk | High | Downloader warnings no longer stop the notebook; §2.1 explains what to do if the PDF is absent; later sections never needed the raw files |
+| Daily-quota errors were retried for 150 s in the embedding build | Medium | `is_daily_quota` short-circuits the retry |
+| Query-vector cache: one truncated line broke app start-up; concurrent sessions could interleave writes; visitors' questions were written into a versioned file; the key ignored the embedding dimension | Medium | Bad lines skipped, writes under a lock, `QUERY_CACHE_PERSIST=0` in the app (read-only), dimension stored and checked |
+| `03_evaluate.py --answers-in` could overwrite the golden answers when rescoring another set | Medium | Output defaults to the input file; clear error when a question text changed |
+| After a failed turn the Streamlit transcript and the graph thread diverged (a dangling user message) | Medium | `Assistant.discard_pending_question`; the user bubble is added only after success |
+| Several shared singletons across Streamlit sessions (`cache_resource`): failover index, query cache, `InMemorySaver` threads never freed | Medium (demo-acceptable) | Documented in `architecture.md`; not changed before the presentation |
+| Stale strings (prompt "v3", `gemini-2.5`, "LLM-as-judge is next"), an unobserved claim in the demo script (v1 "answered 21 CFR from memory"), README layout out of date | Low | Corrected; `docs/rubric.md` maps every requirement to evidence |
+| Notebook §8 printed "✔ expected" unconditionally | Low | Now a real behaviour check per question type plus the author's note |
+| Mermaid PNG needs network; committed notebook showed raw Mermaid | Low | Falls back to `docs/img/graph.png` |
+| `requires-python <3.13` would block Colab on 3.13 | Low | Verified the stack on 3.13 (tests pass); bound relaxed to `<3.14` |
+| ruff pin in pre-commit (0.16.5) differed from the venv (0.17.4) | Low | Aligned |
+
+Not changed, by decision: the closing disclaimer the model adds despite the FORMAT rule
+(prompt change → full re-evaluation), the `_LONE_LETTER` cleaning heuristic (changing it
+re-chunks and re-embeds E6(R3)), and the sanity-set questions overlapping the app's example
+prompts (the gate is calibrated on them; the golden and held-out sets do not overlap them).

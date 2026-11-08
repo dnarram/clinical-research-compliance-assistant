@@ -265,3 +265,21 @@ def test_dropped_connections_are_transient() -> None:
     assert _is_transient(RemoteProtocolError("Server disconnected without sending a response."))
     assert _is_transient(RuntimeError("503 UNAVAILABLE"))
     assert not _is_transient(RuntimeError("401 API key not valid"))
+
+
+def test_discard_pending_question_after_a_failed_turn(settings: Settings) -> None:
+    assistant, llm, _ = make_assistant(
+        settings, ["A1 [1].", "What is the timeline for the other ADRs?", "A2 [1]."]
+    )
+    thread = assistant.new_thread()
+    assistant.ask("ADR reporting timeline?", thread)
+    # Simulate a turn whose node raised after LangGraph checkpointed the input.
+    assistant.graph.update_state(
+        {"configurable": {"thread_id": thread}}, {"messages": [HumanMessage(content="dangling?")]}
+    )
+    assert [m.type for m in assistant.history(thread)] == ["human", "ai", "human"]
+    assert assistant.discard_pending_question(thread) == 1
+    assert [m.type for m in assistant.history(thread)] == ["human", "ai"]
+    assert assistant.discard_pending_question(thread) == 0
+    a2 = assistant.ask("And the other ADRs?", thread)
+    assert a2.text == "A2 [1]." and "dangling" not in llm.calls[-2][0].content

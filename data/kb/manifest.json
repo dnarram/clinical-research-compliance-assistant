@@ -1,8 +1,9 @@
 {
   "ich_e2a": {
-    "built_at": "2026-11-08T08:44:32+00:00",
+    "built_at": "2026-11-08T21:51:24+00:00",
     "chunk_overlap": 50,
     "chunk_size": 500,
+    "complete": true,
     "embedding_dim": 768,
     "embedding_model": "gemini-embedding-2",
     "n_chunks": 68,
@@ -14,9 +15,10 @@
     "title": "ICH E2A \u2014 Clinical Safety Data Management: Definitions and Standards for Expedited Reporting"
   },
   "ich_e6_r3": {
-    "built_at": "2026-11-08T08:44:33+00:00",
+    "built_at": "2026-11-08T21:51:25+00:00",
     "chunk_overlap": 50,
     "chunk_size": 500,
+    "complete": true,
     "embedding_dim": 768,
     "embedding_model": "gemini-embedding-2",
     "n_chunks": 665,
@@ -28,9 +30,10 @@
     "title": "ICH E6(R3) \u2014 Guideline for Good Clinical Practice (Step 4, 6 January 2025)"
   },
   "wma_helsinki_2024": {
-    "built_at": "2026-11-08T08:44:33+00:00",
+    "built_at": "2026-11-08T21:51:25+00:00",
     "chunk_overlap": 50,
     "chunk_size": 500,
+    "complete": true,
     "embedding_dim": 768,
     "embedding_model": "gemini-embedding-2",
     "n_chunks": 68,

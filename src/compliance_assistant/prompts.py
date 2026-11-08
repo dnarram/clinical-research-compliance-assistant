@@ -1,7 +1,7 @@
 """System prompts (versioned), the query-rewrite prompt and message assembly.
 
-The three versions are kept on purpose: the notebook and README show how each change was
-motivated by a concrete failure (see docs/prompt_iterations.md). `v3` is the one in use.
+The four versions are kept on purpose: the notebook and README show how each change was
+motivated by an observed failure (see docs/prompt_iterations.md). `v4` is the one in use.
 """
 
 from __future__ import annotations

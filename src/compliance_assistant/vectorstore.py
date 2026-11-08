@@ -19,6 +19,7 @@ import gzip
 import json
 import logging
 import shutil
+import threading
 import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -116,20 +117,34 @@ class CachedQueryEmbeddings(Embeddings):
     query text and tagged with the model so a model switch invalidates it.
     """
 
-    def __init__(self, inner: Embeddings, path: Path, model: str) -> None:
+    def __init__(
+        self, inner: Embeddings, path: Path, model: str, dim: int = 768, persist: bool = True
+    ) -> None:
         self.inner = inner
         self.path = path
         self.model = model
+        self.dim = dim
+        self.persist = persist  # False: read the committed cache, never write (Streamlit)
         self._cache: dict[str, list[float]] = {}
+        self._lock = threading.Lock()
         self.hits = 0
         self.misses = 0
+        self.skipped_lines = 0
         if path.exists():
-            with gzip.open(path, "rt", encoding="utf-8") as fh:
-                for line in fh:
-                    if line.strip():
-                        d = json.loads(line)
-                        if d.get("model") == model:
+            try:
+                with gzip.open(path, "rt", encoding="utf-8") as fh:
+                    for line in fh:
+                        if not line.strip():
+                            continue
+                        try:
+                            d = json.loads(line)
+                        except ValueError:  # a line truncated by an interrupted append
+                            self.skipped_lines += 1
+                            continue
+                        if d.get("model") == model and d.get("dim", 768) == dim:
                             self._cache[d["text"]] = d["vector"]
+            except (OSError, EOFError):  # corrupt gzip member: start with an empty cache
+                log.warning("[query-cache] %s unreadable; continuing without it", path.name)
 
     def embed_query(self, text: str) -> list[float]:
         if text in self._cache:
@@ -139,15 +154,12 @@ class CachedQueryEmbeddings(Embeddings):
         vector = [round(float(x), 6) for x in self.inner.embed_query(text)]
         self.misses += 1
         self._cache[text] = vector
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with gzip.open(self.path, "at", encoding="utf-8") as fh:
-            fh.write(
-                json.dumps(
-                    {"model": self.model, "text": text, "vector": vector},
-                    ensure_ascii=False,
-                )
-                + "\n"
-            )
+        if self.persist:
+            record = {"model": self.model, "dim": self.dim, "text": text, "vector": vector}
+            with self._lock:  # Streamlit serves sessions from several threads
+                self.path.parent.mkdir(parents=True, exist_ok=True)
+                with gzip.open(self.path, "at", encoding="utf-8") as fh:
+                    fh.write(json.dumps(record, ensure_ascii=False) + "\n")
         return vector
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
@@ -160,6 +172,8 @@ def get_query_embeddings(settings: Settings, api_key: str | list[str]) -> Embedd
         get_embeddings(settings, api_key, TASK_QUERY),
         settings.query_cache_path,
         settings.embedding_model,
+        dim=settings.embedding_dim,
+        persist=settings.persist_query_cache,
     )
 
 
@@ -265,8 +279,11 @@ def is_current(entry: dict[str, Any] | None, key: dict[str, Any]) -> bool:
 
 
 def _is_rate_limit(exc: Exception) -> bool:
+    """A per-minute limit worth waiting for. A per-day quota is not (see is_daily_quota)."""
     text = str(exc)
-    return "429" in text or "RESOURCE_EXHAUSTED" in text or "quota" in text.lower()
+    return ("429" in text or "RESOURCE_EXHAUSTED" in text or "quota" in text.lower()) and (
+        not is_daily_quota(exc)
+    )
 
 
 def embed_missing(
@@ -300,7 +317,8 @@ def embed_missing(
     for start in range(0, len(missing), batch_size):
         batch = missing[start : start + batch_size]
         delay = 10.0
-        for attempt in range(max_retries):
+        vectors: list[list[float]] | None = None
+        for attempt in range(max(1, max_retries)):
             try:
                 vectors = embedder.embed_documents([c.text for c in batch])
                 break
@@ -310,6 +328,7 @@ def embed_missing(
                 log.warning("[embed] rate limited, waiting %.0fs (attempt %d)", delay, attempt + 1)
                 sleep(delay)
                 delay *= 2
+        assert vectors is not None
         cache.append(
             doc_id,
             (
@@ -367,16 +386,22 @@ def build_kb(
         if doc_embedder is None:
             raise ValueError("an embeddings client is required unless dry_run=True")
         key = manifest_key(source, settings)
-        if not is_current(manifest.get(source.doc_id), key):
-            if source.doc_id in manifest:
-                log.info("[build] %s: inputs changed, discarding cached embeddings", source.doc_id)
+        previous = manifest.get(source.doc_id, {})
+        if previous and not is_current(previous, key):
+            # Same doc_id, different inputs (PDF, model, dim or chunking): the cached
+            # vectors are useless. A missing entry is NOT a reason to reset — it is what an
+            # interrupted first build leaves behind, and its partial cache must be reused.
+            log.info("[build] %s: inputs changed, discarding cached embeddings", source.doc_id)
             cache.reset(source.doc_id)
+        if not is_current(previous, key) or not previous.get("complete", True):
+            # Persist the key now, so a quota failure half-way leaves a resumable state.
+            manifest[source.doc_id] = {**key, "complete": False, "title": source.title}
+            save_manifest(settings, manifest)
         n = embed_missing(
             source.doc_id, chunks, doc_embedder, cache, settings.embedding_batch_size, sleep=sleep
         )
         report.embedded_per_doc[source.doc_id] = n
-        entry = {**key, "n_chunks": len(chunks), "title": source.title}
-        previous = manifest.get(source.doc_id, {})
+        entry = {**key, "n_chunks": len(chunks), "title": source.title, "complete": True}
         if n or {k: previous.get(k) for k in entry} != entry:
             # Only a real change gets a new timestamp: the timestamp keys the Chroma rebuild,
             # and a no-op build must leave this versioned file untouched.
@@ -400,7 +425,8 @@ def rebuild_chroma(settings: Settings, query_embedder: Embeddings) -> Chroma:
     """Recreate the persisted collection from the cache. No embedding API calls: vectors
     are inserted through Chroma's native `add` with precomputed embeddings."""
     manifest = load_manifest(settings)
-    records = EmbeddingCache(settings.cache_dir).load_all(sorted(manifest))
+    complete = sorted(d for d, e in manifest.items() if e.get("complete", True))
+    records = EmbeddingCache(settings.cache_dir).load_all(complete)
     if settings.chroma_dir.exists():
         shutil.rmtree(settings.chroma_dir)
     settings.chroma_dir.mkdir(parents=True)

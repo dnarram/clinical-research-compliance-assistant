@@ -41,7 +41,7 @@ md(r"""
 | 2 | Knowledge base: sources, pre-processing, chunking | Base de conocimiento |
 | 3 | Gemini embeddings + ChromaDB, idempotent build | Base de conocimiento |
 | 4 | Retrieval sanity check **before** the agent (EN/ES, out-of-domain, calibrated threshold) | RAG |
-| 5 | System prompt v3 and why (v1 vs v3 on the same question) | Ingeniería de prompts |
+| 5 | System prompt v4 and why (v1 vs v4 on the same question) | Ingeniería de prompts |
 | 6 | The LangGraph agent and its trace | Agente LangGraph |
 | 7 | Conversation memory: referential follow-ups, thread isolation | Memoria |
 | 8 | Documented example conversations | ≥ 5 ejemplos |
@@ -109,7 +109,11 @@ sources = load_sources(settings)
 missing = [s for s in sources if not s.pdf_path(settings).exists()]
 if missing:
     print(f"Fetching {len(missing)} source file(s) from their publishers…")
-    subprocess.run([sys.executable, str(PROJECT_ROOT / "scripts" / "00_download_sources.py")], check=True)
+    result = subprocess.run([sys.executable, str(PROJECT_ROOT / "scripts" / "00_download_sources.py")], check=False)
+    if result.returncode != 0:
+        print("WARNING: a publisher's file no longer matches the recorded sha256 (see output above). "
+              "The pre-processing demo below uses whatever was downloaded; the knowledge base itself comes "
+              "from the committed embedding cache and is unaffected.")
 
 print(f"{'doc_id':<20} {'format':<6} {'pages':<8} title")
 for s in sources:
@@ -125,6 +129,9 @@ code(r"""
 from compliance_assistant.ingestion import load_pdf, clean_pages, find_repeated_lines, ingest
 
 e6 = next(s for s in sources if s.doc_id == "ich_e6_r3")
+if not e6.pdf_path(settings).exists():
+    raise RuntimeError("ICH E6(R3) PDF not available offline — run scripts/00_download_sources.py (network) to see this demo; "
+                       "sections 3 onwards work from the committed cache without it.")
 raw_pages = load_pdf(e6.pdf_path(settings), e6.doc_id, pages=(22, 22))
 clean = clean_pages(load_pdf(e6.pdf_path(settings), e6.doc_id, pages=e6.pages))
 repeated = find_repeated_lines(load_pdf(e6.pdf_path(settings), e6.doc_id, pages=e6.pages))
@@ -138,7 +145,7 @@ print(next(p for p in clean if p.page == 22).text[:400])
 code(r"""
 import matplotlib.pyplot as plt
 
-all_chunks = {s.doc_id: ingest(s, settings) for s in sources}
+all_chunks = {s.doc_id: ingest(s, settings) for s in sources if s.pdf_path(settings).exists()}
 for doc_id, chunks in all_chunks.items():
     with_section = sum(1 for c in chunks if c.metadata["section"])
     print(f"{doc_id:<20} {len(chunks):>4} chunks   {with_section:>4} with a section label   "
@@ -212,7 +219,7 @@ show("Which GLP-1 drug is best for weight loss?")          # out of domain: clin
 show("¿Cuál es la mejor receta de paella valenciana?")       # out of domain: unrelated
 """)
 code(r"""
-calibration = json.loads(settings.calibration_path.read_text())
+calibration = json.loads(settings.calibration_path.read_text(encoding="utf-8"))
 threshold = settings.resolved_threshold()
 en, es, ood = calibration["in_domain_max_scores"]["en"], calibration["in_domain_max_scores"]["es"], calibration["out_of_domain_max_scores"]
 
@@ -311,7 +318,8 @@ graph = assistant.graph
 try:
     display(Image(graph.get_graph().draw_mermaid_png()))
 except Exception as exc:  # the PNG renderer needs network access (mermaid.ink)
-    print(f"(PNG rendering unavailable: {type(exc).__name__}) — Mermaid source:\n")
+    print(f"(live PNG rendering unavailable: {type(exc).__name__}; showing docs/img/graph.png, rendered from this graph)")
+    display(Image(str(PROJECT_ROOT / "docs" / "img" / "graph.png")))
     print(graph.get_graph().draw_mermaid())
 print(f"refusal threshold in use: {assistant.threshold}")
 """)
@@ -392,12 +400,29 @@ DEMO_QUESTIONS = [
                         "FDA regulation is not indexed. Expect either a refusal or an answer that stays within E6(R3)/Helsinki and says 21 CFR is not in its sources — never an invented citation."),
 ]
 
+def behaved(kind, a):
+    # A real check per behaviour type, not a label: the author's note below is the expert reading.
+    docs = {s.doc_id for s in a.sources}
+    low = a.text.lower()
+    if kind == "out-of-domain":
+        return not a.grounded
+    if kind == "not-in-KB":
+        return any(c in low for c in ("could not find", "not in my knowledge base", "does not contain"))
+    if kind == "multi-source":
+        return {"ich_e6_r3", "wma_helsinki_2024"} <= docs and a.grounded
+    if kind == "timeline":
+        return a.grounded and "15" in a.text and "ich_e2a" in docs
+    return a.grounded and bool(a.sources)
+
+
 for i, (kind, q, note) in enumerate(DEMO_QUESTIONS, 1):
     a = assistant.ask(q)      # fresh thread each time
     print(f"\n{'═'*100}\n{i}. [{kind}]  {q}\n{'─'*100}")
     print(a.text)
     print(f"\n   grounded={a.grounded}  max_score={a.max_score:.3f}  sources: " + ("; ".join(f"[{s.n}] {s.citation}" for s in a.sources) or "(none)"))
-    print(f"   ✔ expected: {note}")
+    ok = behaved(kind, a)
+    print(f"   {'✔' if ok else '✘'} behaviour check: {kind} — {'as expected' if ok else 'NOT as expected'}")
+    print(f"   author's note: {note}")
     time.sleep(2)
 """)
 
@@ -430,7 +455,7 @@ code(r"""
 import re
 
 def metric_table(path):
-    rows = re.findall(r"^\| ([a-z_@0-9]+) \| ([^|]+) \|$", (PROJECT_ROOT / path).read_text(), flags=re.M)
+    rows = re.findall(r"^\| ([a-z_@0-9]+) \| ([^|]+) \|$", (PROJECT_ROOT / path).read_text(encoding="utf-8"), flags=re.M)
     return {k: v.strip() for k, v in rows}
 
 before, after = metric_table("docs/evaluation_baseline_v3.md"), metric_table("docs/evaluation.md")
@@ -455,7 +480,7 @@ def judge_mean(path):
     p = PROJECT_ROOT / path
     if not p.exists():
         return "not run"
-    rows = [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+    rows = [json.loads(l) for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
     counts = {v: sum(r["verdict"] == v for r in rows) for v in ("correct", "partially_correct", "incorrect")}
     return f"{statistics.mean(r['score'] for r in rows):.2f} ({counts['correct']}/{counts['partially_correct']}/{counts['incorrect']})"
 
@@ -475,7 +500,7 @@ display(Markdown("\n".join(rows)))
 from compliance_assistant.judge import agreement
 def load(path):
     p = PROJECT_ROOT / path
-    return [json.loads(l) for l in p.read_text().splitlines() if l.strip()] if p.exists() else []
+    return [json.loads(l) for l in p.read_text(encoding="utf-8").splitlines() if l.strip()] if p.exists() else []
 stats = agreement(load("data/eval/answers_baseline_v3.judge-gemini-3.5-flash.jsonl"),
                   load(f"data/eval/answers_baseline_v3.{J}.jsonl"))
 print("judge agreement, gemini-3.5-flash (a) vs gemini-3.5-flash-lite (b):", json.dumps(stats, indent=1))
@@ -548,7 +573,7 @@ md(r"""
 **Next steps (in order of value)**
 1. Add EMA GVP Module VI and EU CTR 536/2014 (the ingestion is per-document and idempotent).
 2. Hybrid retrieval (BM25 + vectors) for exact section numbers and acronyms.
-3. LLM-as-judge faithfulness check on the golden set (the harness already supports answer generation).
+3. A faithfulness judge (answer vs. retrieved passages) — the current judge measures correctness against expert references.
 4. A `guard_input` node (prompt-injection and PII screening) before `rewrite_query`.
 """)
 

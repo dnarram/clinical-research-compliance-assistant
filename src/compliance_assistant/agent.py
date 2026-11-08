@@ -162,6 +162,23 @@ class Assistant:
         ):
             yield from update.items()
 
+    def discard_pending_question(self, thread_id: str) -> int:
+        """Remove trailing user messages left in a thread by a turn that raised before
+        `generate` ran (LangGraph checkpoints the input before the nodes). Returns how many
+        messages were removed. Keeps the memory window honest after an API failure."""
+        from langchain_core.messages import RemoveMessage
+
+        messages = self.history(thread_id)
+        pending = []
+        while messages and messages[-1].type == "human":
+            pending.append(messages.pop())
+        if pending:
+            self.graph.update_state(
+                new_thread_config(thread_id),
+                {"messages": [RemoveMessage(id=m.id) for m in pending if m.id]},
+            )
+        return len(pending)
+
     def history(self, thread_id: str) -> list[BaseMessage]:
         snapshot = self.graph.get_state(new_thread_config(thread_id))
         return list(snapshot.values.get("messages", [])) if snapshot and snapshot.values else []

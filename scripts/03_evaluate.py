@@ -81,10 +81,17 @@ def main() -> int:
                 row = json.loads(line)
                 saved[row["question"]] = row["answer"]
         args.with_answers = True
+        if args.answers_out == parser.get_default("answers_out"):
+            args.answers_out = args.answers_in  # never clobber another set's answers by default
         print(f"rescoring {len(saved)} saved answers from {args.answers_in} (no LLM calls)")
 
     def answer(question: str) -> str:
         if saved:
+            if question not in saved:
+                raise SystemExit(
+                    f"no saved answer for {question!r} in {args.answers_in}; the golden question "
+                    "text changed since the answers were generated — re-run with --with-answers"
+                )
             return saved[question]
         time.sleep(args.pause)
         return assistant.ask(question).text

@@ -74,6 +74,9 @@ class Settings:
     # you told me") must fit inside the window; tests pin that.
     history_window: int = 10
     prompt_version: str = "v4"
+    # Write newly embedded queries to data/kb/query_cache.jsonl.gz. The Streamlit app sets
+    # QUERY_CACHE_PERSIST=0: it must not record visitors' questions into a versioned file.
+    persist_query_cache: bool = True
     collection_name: str = "clinical_compliance"
 
     # Derived paths
@@ -110,7 +113,7 @@ class Settings:
         if self.score_threshold is not None:
             return self.score_threshold
         if self.calibration_path.exists():
-            data = json.loads(self.calibration_path.read_text())
+            data = json.loads(self.calibration_path.read_text(encoding="utf-8"))
             value = data.get("score_threshold")
             return float(value) if value is not None else None
         return None
@@ -128,6 +131,8 @@ def load_settings(**overrides: object) -> Settings:
         env["score_threshold"] = float(v)
     if v := os.environ.get("PROMPT_VERSION"):
         env["prompt_version"] = v
+    if (v := os.environ.get("QUERY_CACHE_PERSIST")) is not None:
+        env["persist_query_cache"] = v.strip() not in {"0", "false", "False", ""}
     return replace(Settings(), **env, **overrides)  # type: ignore[arg-type]
 
 

@@ -1,8 +1,9 @@
 # Golden set
 
 `golden.jsonl` is the ground truth the evaluation (`scripts/03_evaluate.py`) runs
-against. It is written by hand from domain knowledge — **not generated** — because the
-value of the test is knowing *which document and section* actually answers each question.
+against. Each item was drafted from the verified indexed text and reviewed by the author —
+never auto-generated from the corpus — because the value of the test is knowing *which
+document and section* actually answers each question.
 
 **Status:** 25 items (19 in-domain incl. two multi-source, 4 out-of-domain, 2 not-in-KB), drafted by Claude from the indexed text and reviewed by the author — extend or correct freely. Suggested mix: 8–10 `in_domain` (cover all three
 documents, at least two that need more than one document to answer, e.g. consent in

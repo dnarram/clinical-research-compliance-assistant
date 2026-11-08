@@ -175,3 +175,73 @@ def test_noop_build_leaves_manifest_bytes_unchanged(kb: Settings) -> None:
     report = build_kb(kb, embedder, sleep=lambda _: None)
     assert report.total_embedded == 0
     assert kb.manifest_path.read_bytes() == before, "no-op build must not touch the manifest"
+
+
+# --- audit regressions (2026-11-09) -------------------------------------------------------
+
+
+class DailyQuotaAfterOneBatch(DeterministicFakeEmbedding):
+    """Embeds the first batch, then raises a *daily* quota error on every later call."""
+
+    calls: int = 0
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        self.calls += 1
+        if self.calls > 1:
+            raise RuntimeError(
+                "429 RESOURCE_EXHAUSTED: Embed content requests per day limit exceeded on Free Tier"
+            )
+        return super().embed_documents(texts)
+
+
+def test_interrupted_first_build_resumes_instead_of_restarting(kb: Settings) -> None:
+    from dataclasses import replace
+
+    small = replace(kb, embedding_batch_size=2)
+    waits: list[float] = []
+    with pytest.raises(RuntimeError, match="per day"):
+        build_kb(small, DailyQuotaAfterOneBatch(size=8), sleep=waits.append)
+    assert all(w < 1 for w in waits), f"a daily quota error is not retried (waits={waits})"
+    cached_after_failure = len(EmbeddingCache(small.cache_dir).load("test_e9x"))
+    assert cached_after_failure == 2, "the first batch survived the failure"
+    manifest = load_manifest(small)
+    assert manifest["test_e9x"]["complete"] is False, "the key was persisted before embedding"
+
+    embedder = CountingEmbedding(size=8)
+    report = build_kb(small, embedder, sleep=lambda _: None)
+    total = report.total_chunks
+    assert report.total_embedded == total - 2, "only the missing chunks were embedded"
+    assert load_manifest(small)["test_e9x"]["complete"] is True
+
+
+def test_incomplete_documents_stay_out_of_chroma(kb: Settings) -> None:
+    from dataclasses import replace
+
+    small = replace(kb, embedding_batch_size=2)
+    with pytest.raises(RuntimeError):
+        build_kb(small, DailyQuotaAfterOneBatch(size=8), sleep=lambda _: None)
+    store = rebuild_chroma(small, CountingEmbedding(size=8))
+    assert store._collection.count() == 0, "half-embedded documents must not be served"
+
+
+def test_query_cache_skips_corrupt_lines_and_can_be_read_only(settings: Settings) -> None:
+    import gzip
+
+    from compliance_assistant.vectorstore import CachedQueryEmbeddings
+
+    path = settings.kb_dir / "query_cache.jsonl.gz"
+    good = CachedQueryEmbeddings(CountingEmbedding(size=4), path, model="m", dim=4)
+    v = good.embed_query("fine")
+    with gzip.open(path, "at", encoding="utf-8") as fh:
+        fh.write('{"model": "m", "dim": 4, "text": "trunc')  # interrupted append
+    reloaded = CachedQueryEmbeddings(CountingEmbedding(size=4), path, model="m", dim=4)
+    assert reloaded.embed_query("fine") == v and reloaded.skipped_lines == 1
+
+    other_dim = CachedQueryEmbeddings(CountingEmbedding(size=4), path, model="m", dim=8)
+    other_dim.embed_query("fine")
+    assert other_dim.misses == 1, "vectors of another dimension are never reused"
+
+    size_before = path.stat().st_size
+    ro = CachedQueryEmbeddings(CountingEmbedding(size=4), path, model="m", dim=4, persist=False)
+    ro.embed_query("new question from a visitor")
+    assert path.stat().st_size == size_before, "read-only cache writes nothing"
