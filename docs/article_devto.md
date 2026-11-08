@@ -81,8 +81,10 @@ The judge has a caveat worth saying out loud: the larger judge model allows twen
 day on the free tier, so the scores come from the same small model that writes the answers;
 on 38 answers both judged they agree 79 % and the larger one is stricter. Two things did not
 improve, and I report them rather than tune against my own test set: a multi-hop question
-still misses a step (one retrieval pass cannot bring every hop), and routing cost one
-section hit on a Spanish question.
+still misses a step (one retrieval pass cannot bring every hop), and document routing cost
+one section hit on the two-document comparison question — in both languages, not only in
+Spanish; the Spanish answer still quotes the right principle, the English one was judged
+partially correct.
 
 ## What I would do next
 

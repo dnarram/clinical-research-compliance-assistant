@@ -105,8 +105,9 @@ se mantuvo en 1,0 y ninguna pregunta de dominio fue rechazada en ninguna de las 
 El juez es *flash‑lite*, el mismo modelo que responde, porque el juez grande permite veinte
 llamadas al día; en las 38 respuestas que juzgaron ambos coinciden en el 79 % y el grande es
 más estricto, así que las cifras absolutas hay que leerlas como optimistas. Lo que queda: una
-cadena de notificación de varios saltos aún pierde un paso, y el enrutado costó un acierto de
-sección en español.
+cadena de notificación de varios saltos aún pierde un paso, y el enrutado perdió un acierto
+de sección en la pregunta que compara los dos documentos, en ambos idiomas, aunque la
+respuesta en español sigue citando el Principio 2.1.
 
 ## 7 · Límites y siguientes pasos (8:15 – 9:00)
 
