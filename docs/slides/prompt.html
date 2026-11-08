@@ -1,4 +1,4 @@
-<section id="prompt" data-transition="fade" style="background:#f6f7f5;color:#1c2128;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<section id="prompt" data-transition="fade" style="background:#f6f7f5;color:#1c2128;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 128px;display:flex;flex-direction:column;gap:32px">
 <h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1">The system prompt: each version answers an observed failure</h2>
 <div style="display:flex;gap:32px;align-items:stretch">
 <div style="flex:1;background:#ffffff;padding:36px;border-radius:16px;border:1px solid #dfe3e0;display:flex;flex-direction:column;gap:14px">
@@ -30,7 +30,7 @@
 </div>
 <div style="display:flex;gap:24px;align-items:center;background:#e3eef5;padding:28px 36px;border-radius:16px">
 <x-icon name="Lightbulb" style="width:48px;height:48px;color:#2a6f97"></x-icon>
-<p style="font-size:27px;line-height:1.35;color:#1c2128"><b>Hard constraints in code, judgement in the prompt.</b> The answer language is a deterministic line in the user message, out-of-domain questions never reach the model, and truncated lists were fixed in retrieval (section expansion), not with more prompt.</p>
+<p style="font-size:26px;line-height:1.35;color:#1c2128"><b>Hard constraints in code, judgement in the prompt.</b> The answer language is a deterministic line in the user message, out-of-domain questions never reach the model, and truncated lists were fixed in retrieval (section expansion), not with more prompt.</p>
 </div>
 <p style="position:absolute;left:128px;bottom:64px;font-size:24px;color:#6a7179">Full prompt and rationale: README · docs/prompt_iterations.md (v2 was a design step, not evaluated on its own)</p>
 <aside>Cuatro versiones; enseño tres. La versión uno, el prompt de clase, respondía bien pero sin marcas de cita: nada era trazable. La versión tres añadió citas por frase, atribución cuando los documentos difieren y la política de idioma. Entonces ejecuté el golden set completo y leí todas las respuestas: una pregunta de varios pasos se rechazó aunque todos los pasos estaban en los pasajes; su rechazo en español salió en inglés; y listas cortadas por el troceado se presentaban como completas. La versión cuatro gradúa el rechazo (responde la parte cubierta y dice cuál no), construye las cadenas paso a paso y pide listas completas. El recorte de las listas lo arreglé en la recuperación, no en el prompt: las restricciones duras van en código y el criterio va en el prompt.</aside>

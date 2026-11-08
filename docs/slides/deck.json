@@ -1,0 +1,18 @@
+{
+  "v": 4,
+  "createdOnFiles": {"v": 1, "at": "2026-11-08T11:05:00Z"},
+  "lists": "css",
+  "title": "Clinical Research Compliance Assistant — Demo",
+  "order": ["cover", "problem", "architecture", "prompt", "demo", "evaluation", "next"],
+  "sections": {
+    "s1": {"description": "Why a compliance assistant and why this author", "start": "cover"},
+    "s2": {"description": "How it is built: the graph, the knowledge base and three decisions", "start": "architecture"},
+    "s3": {"description": "What the live demo shows and what the numbers say", "start": "demo"},
+    "s4": {"description": "Limits and what comes next", "start": "next"}
+  },
+  "faces": {
+    "space-grotesk": {"family": "Space Grotesk", "href": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400..700&display=swap"},
+    "ibm-plex-sans": {"family": "IBM Plex Sans", "href": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap"}
+  },
+  "designSystems": []
+}
