@@ -1,6 +1,6 @@
 # Demo script — 5–10 minutes
 
-Slides: <https://claude.ai/artifact/FyZnhuoZ1R3cee1PtUsdgg> (7 slides; export to PPTX/PDF from its Share menu). Slide sources are kept in `docs/slides/`. Spanish speaker notes, slide by slide, with likely questions: [`notas_orador_es.md`](notas_orador_es.md).
+Slides: <https://claude.ai/artifact/FyZnhuoZ1R3cee1PtUsdgg> (7 slides; export to PPTX/PDF from its Share menu). Slide sources are kept in `docs/slides/`; the presenter-view notes (`<aside>`) are in Spanish. The same notes, slide by slide, with timings and likely questions: [`notas_orador_es.md`](notas_orador_es.md).
 
 Rehearse twice with a timer. Have **three windows** open before starting: the Streamlit
 Cloud app (public URL), a local `uv run streamlit run app.py` as fallback, and the executed
