@@ -22,9 +22,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from compliance_assistant.config import load_api_key, load_settings
 from compliance_assistant.vectorstore import (
     TASK_DOCUMENT,
-    TASK_QUERY,
     build_kb,
     get_embeddings,
+    get_query_embeddings,
     rebuild_chroma,
 )
 
@@ -51,7 +51,7 @@ def main() -> int:
 
     if args.rebuild_only:
         api_key = load_api_key()  # the query embedder needs it later, not for the rebuild itself
-        store = rebuild_chroma(settings, get_embeddings(settings, api_key, TASK_QUERY))
+        store = rebuild_chroma(settings, get_query_embeddings(settings, api_key))
         print(
             f"Chroma collection '{settings.collection_name}' rebuilt: {store._collection.count()} chunks"
         )
@@ -81,7 +81,7 @@ def main() -> int:
     doc_embedder = get_embeddings(settings, api_key, TASK_DOCUMENT)
     report = build_kb(settings, doc_embedder, doc_ids=args.doc_id)
     print(f"Embedded {report.total_embedded} new chunks ({report.total_chunks} total in scope).")
-    store = rebuild_chroma(settings, get_embeddings(settings, api_key, TASK_QUERY))
+    store = rebuild_chroma(settings, get_query_embeddings(settings, api_key))
     print(
         f"Chroma collection '{settings.collection_name}' now holds {store._collection.count()} chunks."
     )

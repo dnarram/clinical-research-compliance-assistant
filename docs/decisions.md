@@ -106,3 +106,20 @@ find the text the questions were generated from.
 gitleaks needs a Go toolchain in the hook environment. Replaced with `detect-private-key`
 plus a local hook that greps tracked files for the two Gemini key prefixes (`AIza…`,
 `AQ.…`). `.env` is ignored; the notebook prints only the key length.
+
+## 2026-11-08 — Free-tier embedding quota is per *text*, not per request
+
+`gemini-embedding-2` on the free tier allows 1,000 embedded contents per day
+(`embed_content_free_tier_requests`), and a batch of 50 chunks counts as 50. The 801-chunk
+build plus three full notebook executions and the sanity/calibration runs exhausted the
+day's quota (429 with "retry in 22h"). Consequences and fixes:
+
+- The corpus is embedded **once**; the committed cache means nobody has to repeat it.
+- Query embeddings are now cached on disk (`data/kb/query_cache.jsonl.gz`, versioned,
+  keyed on query text + model) via `CachedQueryEmbeddings`. Repeated questions — the
+  scripted demo, the golden set, the notebook — cost zero embedding requests after the
+  first run, locally and on Streamlit Cloud.
+- Demo-day rule: do not rebuild the knowledge base or re-execute the whole notebook before
+  the presentation; a chat turn costs one embedding (if not cached) and 1–2 LLM calls.
+- Fallback: a second API key from another Google account, switched via `.env` /
+  Streamlit secrets.

@@ -149,3 +149,20 @@ def test_missing_pdf_is_reported_not_fatal(kb: Settings) -> None:
     Path(kb.raw_dir / "test_e9x.pdf").unlink()
     report = build_kb(kb, None, dry_run=True)
     assert report.skipped == ["test_e9x"]
+
+
+def test_cached_query_embeddings_hit_disk_cache(settings: Settings) -> None:
+    from compliance_assistant.vectorstore import CachedQueryEmbeddings
+
+    inner = CountingEmbedding(size=4)
+    path = settings.kb_dir / "query_cache.jsonl.gz"
+    cache = CachedQueryEmbeddings(inner, path, model="m1")
+    v1 = cache.embed_query("susar timeline")
+    v2 = cache.embed_query("susar timeline")
+    assert v1 == v2 and cache.hits == 1 and cache.misses == 1
+
+    reloaded = CachedQueryEmbeddings(CountingEmbedding(size=4), path, model="m1")
+    assert reloaded.embed_query("susar timeline") == v1 and reloaded.misses == 0
+    other_model = CachedQueryEmbeddings(CountingEmbedding(size=4), path, model="m2")
+    other_model.embed_query("susar timeline")
+    assert other_model.misses == 1, "a different model must not reuse cached vectors"

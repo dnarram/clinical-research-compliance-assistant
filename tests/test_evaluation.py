@@ -88,3 +88,35 @@ def test_keyword_coverage_uses_answer_fn(tmp_path: Path) -> None:
     )
     assert report.metrics()["keyword_coverage"] == 1.0
     assert len(calls) == 2, "answers are generated only for in_domain items (both languages)"
+
+
+def test_not_in_kb_and_all_docs_required(tmp_path: Path) -> None:
+    rows = [
+        {
+            "id": "multi",
+            "type": "in_domain",
+            "question_en": "reporting timeline comparison",
+            "expected_doc_ids": ["ich_e2a", "ich_e6_r3"],
+            "all_docs_required": True,
+        },
+        {
+            "id": "cfr",
+            "type": "not_in_kb",
+            "question_en": "What does 21 CFR say about reporting?",
+        },
+    ]
+    path = tmp_path / "g.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in rows), encoding="utf-8")
+    items = load_golden(path)
+    answers = {
+        "reporting timeline comparison": "both [1][2]",
+        "What does 21 CFR say about reporting?": "I could not find this in my knowledge base.",
+    }
+    report = evaluate_retrieval(
+        KeywordStore(), items, Settings(k=2), threshold=0.6, answer_fn=answers.__getitem__
+    )
+    by_id = {r.id: r for r in report.results}
+    assert by_id["multi"].doc_hit is True, "both expected docs are in the top-2"
+    assert by_id["cfr"].grounded is True and by_id["cfr"].honest_not_found is True
+    assert report.metrics()["not_in_kb_honesty"] == 1.0
+    assert "| cfr | en | not_in_kb | yes |" in report.to_markdown()

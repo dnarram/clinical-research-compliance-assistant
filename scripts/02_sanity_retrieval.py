@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from compliance_assistant.config import load_api_key, load_settings
 from compliance_assistant.retrieval import cite, scored_search
-from compliance_assistant.vectorstore import TASK_QUERY, build_or_load, get_embeddings
+from compliance_assistant.vectorstore import build_or_load, get_query_embeddings
 
 # Paired EN/ES queries (same meaning) to check cross-lingual retrieval, plus OOD queries
 # that a compliance assistant must refuse. These are sanity queries, not the golden set.
@@ -88,7 +88,7 @@ def main() -> int:
     logging.basicConfig(level=logging.WARNING)
 
     settings = load_settings()
-    vs = build_or_load(settings, get_embeddings(settings, load_api_key(), TASK_QUERY))
+    vs = build_or_load(settings, get_query_embeddings(settings, load_api_key()))
     print(f"Collection '{settings.collection_name}': {vs._collection.count()} chunks")
 
     if args.query:

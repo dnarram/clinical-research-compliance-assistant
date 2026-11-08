@@ -65,11 +65,11 @@ class Assistant:
     @classmethod
     def from_settings(cls, settings: Settings | None = None, **kwargs: Any) -> Assistant:
         """Wire real Gemini clients and the persisted Chroma collection."""
-        from compliance_assistant.vectorstore import TASK_QUERY, build_or_load, get_embeddings
+        from compliance_assistant.vectorstore import build_or_load, get_query_embeddings
 
         settings = settings or load_settings()
         api_key = load_api_key()
-        store = build_or_load(settings, get_embeddings(settings, api_key, TASK_QUERY))
+        store = build_or_load(settings, get_query_embeddings(settings, api_key))
         return cls(make_llm(settings, api_key), store, settings, **kwargs)
 
     # --- conversation -----------------------------------------------------------------

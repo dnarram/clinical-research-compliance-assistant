@@ -61,6 +61,62 @@ def get_embeddings(settings: Settings, api_key: str, task_type: str) -> Embeddin
     )
 
 
+class CachedQueryEmbeddings(Embeddings):
+    """Wraps the query embedder with a persistent text -> vector cache.
+
+    The free tier counts every embedded text against a daily limit (1,000 with
+    `gemini-embedding-2`, and the 800-chunk corpus build alone uses ~800). Demo and golden
+    questions are asked many times; caching their vectors makes repeated runs — and the
+    scripted live demo — cost zero embedding requests. The cache is keyed on the exact
+    query text and tagged with the model so a model switch invalidates it.
+    """
+
+    def __init__(self, inner: Embeddings, path: Path, model: str) -> None:
+        self.inner = inner
+        self.path = path
+        self.model = model
+        self._cache: dict[str, list[float]] = {}
+        self.hits = 0
+        self.misses = 0
+        if path.exists():
+            with gzip.open(path, "rt", encoding="utf-8") as fh:
+                for line in fh:
+                    if line.strip():
+                        d = json.loads(line)
+                        if d.get("model") == model:
+                            self._cache[d["text"]] = d["vector"]
+
+    def embed_query(self, text: str) -> list[float]:
+        if text in self._cache:
+            self.hits += 1
+            return self._cache[text]
+        vector = self.inner.embed_query(text)
+        self.misses += 1
+        self._cache[text] = vector
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with gzip.open(self.path, "at", encoding="utf-8") as fh:
+            fh.write(
+                json.dumps(
+                    {"model": self.model, "text": text, "vector": [round(x, 6) for x in vector]},
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+        return vector
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return [self.embed_query(t) for t in texts]
+
+
+def get_query_embeddings(settings: Settings, api_key: str) -> Embeddings:
+    """The query-side embedder every consumer should use: Gemini + persistent cache."""
+    return CachedQueryEmbeddings(
+        get_embeddings(settings, api_key, TASK_QUERY),
+        settings.query_cache_path,
+        settings.embedding_model,
+    )
+
+
 # --- cache ---------------------------------------------------------------------------------
 
 

@@ -87,6 +87,10 @@ class Settings:
     def calibration_path(self) -> Path:
         return self.kb_dir / "calibration.json"
 
+    @property
+    def query_cache_path(self) -> Path:
+        return self.kb_dir / "query_cache.jsonl.gz"
+
     def resolved_threshold(self) -> float | None:
         """The relevance gate: explicit setting, else the calibrated value, else None."""
         if self.score_threshold is not None:
