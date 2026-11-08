@@ -9,7 +9,12 @@ what its knowledge base does not cover.
 Final project of the Generative AI module · Master in Data Science & AI · Evolve Academy ·
 David Naranjo Ramírez
 
-> **Live demo:** <https://clinical-research-compliance-assistant-eaksdytvqzbpuvthkakvrd.streamlit.app> · **Notebook:** [`notebooks/compliance_assistant.ipynb`](notebooks/compliance_assistant.ipynb)
+> **Live demo:** <https://clinical-research-compliance-assistant-eaksdytvqzbpuvthkakvrd.streamlit.app> · **Notebook:** [`notebooks/compliance_assistant.ipynb`](notebooks/compliance_assistant.ipynb) · **Brief → evidence:** [`docs/rubric.md`](docs/rubric.md)
+
+**Stack:** Python 3.12 · Google Gemini (`gemini-3.5-flash-lite`, `gemini-embedding-2`) ·
+ChromaDB · LangGraph + LangChain · Jupyter · Streamlit · uv · pytest · ruff
+
+![The Streamlit app answering "How does ICH E2A define a serious adverse event?" with all five criteria quoted from E2A and the sources panel open](docs/img/app.png)
 
 ## Why this domain
 
@@ -155,10 +160,46 @@ complete — and **v4** addresses them together with context expansion and docum
 user message carries a deterministic `Reply in English.` / `Responde en español.` line,
 because the prompt rule alone once let an English question be answered in Spanish.
 
+## Requirements
+
+**System.** Python 3.12 and [`uv`](https://docs.astral.sh/uv/) (`uv` installs the right
+Python by itself; the system Python is not used). Internet access for the Gemini API.
+
+**Gemini API key.** Free at <https://aistudio.google.com/apikey>. It is read from the
+environment only — never written in code, notebooks or docs:
+
+| Where you run | How the key is provided |
+|---|---|
+| Locally (notebook, scripts, Streamlit) | `.env` at the project root: `GEMINI_API_KEY=...` (copy `.env.example`) |
+| Google Colab | *Secrets* panel → `GEMINI_API_KEY` (read by the notebook's first cell) |
+| Streamlit Cloud | *App settings → Secrets* → `GEMINI_API_KEY = "..."` |
+| Optional backup | `GEMINI_API_KEY_BACKUP` — a key from **another** Google Cloud project, used automatically when the first one hits its daily quota |
+
+`.env` is git-ignored and a pre-commit hook rejects any committed string that looks like a
+Gemini key.
+
+**Models.** `gemini-3.5-flash-lite` answers and rewrites questions; `gemini-embedding-2`
+(768 dimensions) embeds documents and queries; `gemini-3.5-flash` / `gemini-3.5-flash-lite`
+judge answers in the evaluation. Override the answering model with `LLM_MODEL=` in `.env`.
+
+**Python dependencies** — declared in `pyproject.toml`, pinned in `uv.lock`, exported to
+`requirements.txt` for Streamlit Cloud:
+
+| Package | Version | Used for |
+|---|---|---|
+| `langgraph` | 1.2.20 | the agent graph, checkpointer memory |
+| `langchain` / `langchain-core` | 1.4.9 / 1.7.6 | messages, documents, vector-store interface |
+| `langchain-google-genai` | 4.4.3 | Gemini chat model and embeddings |
+| `langchain-chroma` / `chromadb` | 1.1.0 / 1.5.9 | vector store |
+| `langchain-text-splitters` | 1.1.3 | recursive chunking |
+| `pypdf` | 7.0.0 | PDF text extraction |
+| `streamlit` | 1.67.0 | web UI |
+| `python-dotenv`, `pyyaml` | 1.2.4, 6.0.3 | `.env` loading, source inventory |
+| dev: `jupyterlab`, `ipywidgets`, `nbconvert`, `pytest`, `ruff`, `pre-commit`, `matplotlib` | see `uv.lock` | notebook, tests, lint |
+
 ## Setup and run
 
-Requirements: Python 3.12, [`uv`](https://docs.astral.sh/uv/), a Gemini API key
-(free at <https://aistudio.google.com/apikey>).
+With the requirements above in place:
 
 ```bash
 git clone https://github.com/dnarram/clinical-research-compliance-assistant.git

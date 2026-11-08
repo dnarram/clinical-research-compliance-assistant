@@ -110,3 +110,12 @@ document routing together, because the failures they address appeared together. 
 notebook (section 5) shows v1 vs v4 on a single question; a prompt-only ablation (v4 with
 expansion and routing off) is a cheap next measurement with `scripts/03_evaluate.py
 --prompt-version v4 --no-expand --no-routing --with-answers`.
+
+**Known residue in v4 (2026-11-08):** the unrequested closing disclaimer persists, and once —
+while taking the README screenshot — it came back in Spanish after an English question,
+although the rest of the answer was in English. Not reproduced on the retake, and the judge
+found the answer language correct in all 58 evaluated answers, so it is rare; but it shows the
+disclaimer is generated outside the language instruction. Candidate fix after the
+presentation (it changes the prompt, so the evaluations would have to be re-run): forbid the
+disclaimer outright — the interface already shows it — or append it deterministically in code
+in the user's language.

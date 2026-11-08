@@ -485,28 +485,41 @@ print("judge agreement, gemini-3.5-flash (a) vs gemini-3.5-flash-lite (b):", jso
 md(r"""
 ## 10 · Interactive chat
 
-Type a question (English or Spanish) and press *Ask*. *New thread* starts a fresh conversation. The cell is skipped when the notebook is executed headlessly (`NB_INTERACTIVE=0`); the next cell is a plain `input()` loop for environments without widgets.
+Run the cells below and talk to the agent: type a question (English or Spanish) and press *Ask*; *New thread* starts a fresh conversation. Every turn goes through the same `chat()` function, which prints the answer immediately with its sources.
+
+When the notebook is executed headlessly (`NB_INTERACTIVE=0`, as for the committed outputs) there is nobody to type, so the cell instead sends a short two-turn conversation through that same function — what you see below is a real exchange, not a recording. Without widgets (some Colab/VS Code setups), call `chat_loop()` for a plain text prompt.
 """)
 code(r"""
+def chat(question: str, thread_id: str) -> None:
+    # One conversational turn: ask the agent, print the answer and its sources.
+    a = assistant.ask(question, thread_id)
+    print(f"\nyou> {question}")
+    print(f"assistant> {a.text}")
+    print("   sources: " + ("; ".join(f"[{s.n}] {s.citation}" for s in a.sources) or "(none — refused)"))
+
+
+def chat_loop() -> None:
+    # Plain-text chat for environments without widgets; an empty line or /quit ends it.
+    t = assistant.new_thread()
+    while (q := input("you> ").strip()) and q != "/quit":
+        chat(q, t)
+
+
 INTERACTIVE = os.environ.get("NB_INTERACTIVE", "1") == "1"
+chat_thread = {"id": assistant.new_thread()}
+
 if INTERACTIVE:
     import ipywidgets as w
-    chat_thread = {"id": assistant.new_thread()}
     box = w.Text(placeholder="Ask about GCP, safety reporting or Helsinki… (EN/ES)", layout=w.Layout(width="80%"))
     ask_btn, new_btn = w.Button(description="Ask", button_style="primary"), w.Button(description="New thread")
     out = w.Output()
 
     def on_ask(_=None):
         q = box.value.strip()
-        if not q:
-            return
-        box.value = ""
-        with out:
-            print(f"\nyou> {q}")
-            a = assistant.ask(q, chat_thread["id"])
-            print(f"assistant> {a.text}")
-            if a.sources:
-                print("   sources: " + "; ".join(f"[{s.n}] {s.citation}" for s in a.sources))
+        if q:
+            box.value = ""
+            with out:
+                chat(q, chat_thread["id"])
 
     def on_new(_=None):
         chat_thread["id"] = assistant.new_thread()
@@ -516,16 +529,9 @@ if INTERACTIVE:
     ask_btn.on_click(on_ask); new_btn.on_click(on_new); box.on_submit(on_ask)
     display(w.VBox([w.HBox([box, ask_btn, new_btn]), out]))
 else:
-    print("interactive cell skipped (NB_INTERACTIVE=0)")
-""")
-code(r"""
-# Fallback without widgets: run this cell and type questions; empty line or /quit ends.
-if INTERACTIVE and not IN_COLAB and False:   # flip to True to use the plain loop
-    t = assistant.new_thread()
-    while (q := input("you> ").strip()) and q != "/quit":
-        a = assistant.ask(q, t)
-        print("assistant>", a.text)
-        print("   sources:", "; ".join(f"[{s.n}] {s.citation}" for s in a.sources) or "(none)")
+    print("Headless run: a real two-turn conversation through chat(), the function the widget calls.")
+    chat("Who must keep the essential records of a clinical trial, and for how long?", chat_thread["id"])
+    chat("¿Y quién puede pedir acceso a esos documentos?", chat_thread["id"])
 """)
 
 # 11 --------------------------------------------------------------------------------------
