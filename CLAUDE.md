@@ -107,6 +107,10 @@ docs/                       living documentation; source for README and the demo
 - Graph nodes log one line each (`[rewrite_query] ...`) so the notebook trace reads
   like the class examples.
 - Nothing prints the API key. Print `len(key)` if a sanity check is needed.
+- **Spanish mirrors.** `README_es.md` is a translation of `README.md`, and
+  `notebooks/compliance_assistant_es.ipynb` is built from the English notebook by
+  `notebooks/build_notebook_es.py`. Whenever the English README or notebook changes, update
+  the Spanish README and rebuild the Spanish notebook in the same commit.
 - **Visual identity = the DNR brand manual** (`docs/brand/ManualIdentidadMarcaDNR_v2.pdf`),
   mapped in `docs/brand_application.md`. Slides, the Streamlit theme, README imagery and
   every chart use only the manual's colours (copper `#B95319` / amber `#E65F19` as the one

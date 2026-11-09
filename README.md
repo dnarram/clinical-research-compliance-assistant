@@ -7,6 +7,8 @@
 
 # Clinical Research Compliance Assistant
 
+*English · [Versión en español](README_es.md)*
+
 An expert question-answering agent on **Good Clinical Practice (ICH E6(R3))**, **expedited
 safety reporting (ICH E2A)** and the **WMA Declaration of Helsinki (2024)**, built with
 Google Gemini, ChromaDB and LangGraph. It answers in English or Spanish, quotes the
