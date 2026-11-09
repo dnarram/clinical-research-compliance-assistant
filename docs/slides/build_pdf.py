@@ -1,6 +1,6 @@
 """Render docs/slides/*.html (the Slides-artifact HTML subset) to a 16:9 PDF with headless Chrome.
 
-Offline fallback for the presentation: `uv run python docs/slides/build_pdf.py [out.pdf]`.
+Offline fallback for the presentation: `uv run python docs/slides/build_pdf.py [out.pdf] [--slides=docs/slides_es]`.
 Adds a small shim for the type's custom elements (x-icon, x-connector), hides the <aside>
 speaker notes and writes one 1920x1080 page per slide (fonts need network; Arial otherwise).
 """
@@ -13,13 +13,21 @@ import sys
 import tempfile
 
 repo = pathlib.Path(__file__).resolve().parents[2]
+_args = [a for a in sys.argv[1:] if not a.startswith("--")]
+_opts = dict(a[2:].split("=", 1) for a in sys.argv[1:] if a.startswith("--") and "=" in a)
+slides = repo / _opts.get("slides", "docs/slides")  # --slides=docs/slides_es for the Spanish deck
 out_pdf = (
-    pathlib.Path(sys.argv[1])
-    if len(sys.argv) > 1
-    else repo / "docs/slides/clinical-research-compliance-assistant-deck.pdf"
+    pathlib.Path(_args[0])
+    if _args
+    else slides
+    / (
+        "clinical-research-compliance-assistant-deck"
+        + ("-es" if slides.name.endswith("_es") else "")
+        + ".pdf"
+    )
 )
 root = pathlib.Path(tempfile.mkdtemp(prefix="deck-pdf-"))
-deck = json.loads((repo / "docs/slides/deck.json").read_text(encoding="utf-8"))
+deck = json.loads((slides / "deck.json").read_text(encoding="utf-8"))
 fonts = "".join(f'<link rel="stylesheet" href="{f["href"]}">' for f in deck["faces"].values())
 SHIM = r"""
 <script>
@@ -77,8 +85,8 @@ def page(sections):
     )
 
 
-sections = [(repo / f"docs/slides/{n}.html").read_text(encoding="utf-8") for n in deck["order"]]
-for png in (repo / "docs/slides").glob("*.png"):  # logos referenced by <img src> beside the html
+sections = [(slides / f"{n}.html").read_text(encoding="utf-8") for n in deck["order"]]
+for png in slides.glob("*.png"):  # logos referenced by <img src> beside the html
     shutil.copy(png, root / png.name)
 (root / "deck.html").write_text(page(sections), encoding="utf-8")
 for i, s in enumerate(sections, 1):

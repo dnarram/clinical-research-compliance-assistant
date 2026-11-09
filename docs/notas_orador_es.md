@@ -1,10 +1,11 @@
 # Notas del orador (español) — 7 diapositivas, 8–9 minutos + preguntas
 
-Notas del orador de cada diapositiva del deck
-(<https://claude.ai/artifact/FyZnhuoZ1R3cee1PtUsdgg>; fuentes en `docs/slides/`). Las
-diapositivas están en inglés; las notas que muestra la vista de presentador (`<aside>` de cada
-diapositiva) son estas mismas, en español. La versión original en inglés queda en el historial
-de git (hasta el commit `8ae6752`). Los términos
+Notas del orador de cada diapositiva. Hay dos decks con el mismo diseño y estas mismas notas en
+la vista de presentador: el original en inglés (<https://claude.ai/artifact/FyZnhuoZ1R3cee1PtUsdgg>,
+fuentes en `docs/slides/`, PDF en `docs/slides/*.pdf`) y la versión con el texto de las
+diapositivas en español (<https://claude.ai/artifact/7f6S2LKkrRGGFvqDd2uVqU>, fuentes en
+`docs/slides_es/`, PDF en `docs/slides_es/*.pdf`). La versión inglesa de las notas queda en el
+historial de git (hasta el commit `8ae6752`). Los términos
 regulatorios se dejan en inglés (SAE, SUSAR, IB, IRB/IEC), como en el propio asistente.
 Tiempos orientativos; la demo en vivo va entre la 5 y la 6.
 

@@ -1,0 +1,38 @@
+<section id="prompt" data-transition="fade" style="background:#E2E8F0;color:#162B43;font-family:'Inter', Arial, sans-serif;padding:128px 128px 128px;display:flex;flex-direction:column;gap:28px">
+<h2 style="font-family:'Inter', Arial, sans-serif;font-size:64px;font-weight:700;line-height:1.1">El system prompt: cada versión responde a un fallo observado</h2>
+<div style="display:flex;gap:32px;align-items:stretch">
+<div style="flex:1;background:#FAFAFA;padding:36px;border-radius:16px;border:1px solid #CBD5E1;display:flex;flex-direction:column;gap:14px">
+<p style="font-size:22px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B95319">v1 · base de clase</p>
+<h3 style="font-size:30px;font-weight:600">“Responde a partir de los documentos”</h3>
+<ul style="font-size:23px;line-height:1.4;color:#2C3E50">
+<li>Correcto y fluido, pero sin marcas de cita: ninguna frase se puede rastrear hasta un pasaje</li>
+<li>Sin regla para la información ausente, sin alcance, sin política de idioma</li>
+</ul>
+</div>
+<div style="flex:1;background:#FAFAFA;padding:36px;border-radius:16px;border:1px solid #CBD5E1;display:flex;flex-direction:column;gap:14px">
+<p style="font-size:22px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#B95319">v3 · citas e idioma</p>
+<h3 style="font-size:30px;font-weight:600">[n] en cada frase, fuentes atribuidas, respuesta en el idioma del usuario</h3>
+<ul style="font-size:23px;line-height:1.4;color:#2C3E50">
+<li>La ejecución del golden set encontró: una pregunta de varios pasos rechazada por completo</li>
+<li>Su rechazo en español, escrito en inglés</li>
+<li>Listas truncadas presentadas como completas</li>
+</ul>
+</div>
+<div style="flex:1;background:#162B43;padding:36px;border-radius:16px;display:flex;flex-direction:column;gap:14px">
+<p style="font-size:22px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#E29A5C">v4 · en uso</p>
+<h3 style="font-size:30px;font-weight:600;color:#E2E8F0">Rechazos graduados, respuestas paso a paso, listas completas</h3>
+<ul style="font-size:23px;line-height:1.4;color:#CBD5E1">
+<li>Responde la parte cubierta y nombra la que no; rechaza solo cuando nada es relevante</li>
+<li>Construye las cadenas paso a paso, citando cada paso</li>
+<li>Da todos los elementos de la lista, o dice que continúa — en el idioma del usuario</li>
+</ul>
+</div>
+</div>
+<div style="display:flex;gap:24px;align-items:center;background:#FAFAFA;padding:28px 36px;border-radius:16px;border-left:6px solid #B95319">
+<x-icon name="Lightbulb" style="width:48px;height:48px;color:#B95319"></x-icon>
+<p style="font-size:23px;line-height:1.35;color:#162B43"><b>Restricciones duras en código, criterio en el prompt.</b> El idioma de la respuesta es una línea determinista en el mensaje del usuario, las preguntas fuera de dominio nunca llegan al modelo, y las listas truncadas se arreglaron en la recuperación (expansión por sección), no con más prompt.</p>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;font-size:22px;color:#2C3E50;width:1450px">Prompt completo y justificación: README · docs/prompt_iterations.md · v2 fue un paso de diseño, no evaluado aparte</p>
+<img src="SimpleClaro.png" alt="DNR — David Naranjo Ramírez" style="position:absolute;right:128px;bottom:48px;width:150px;height:89px;object-fit:contain">
+<aside>Cuatro versiones; enseño tres. La versión uno, el prompt de clase, respondía bien pero sin marcas de cita: nada era trazable. La versión tres añadió citas por frase, atribución cuando los documentos difieren y la política de idioma. Entonces ejecuté el golden set completo y leí todas las respuestas: una pregunta de varios pasos se rechazó aunque todos los pasos estaban en los pasajes; su rechazo en español salió en inglés; y listas cortadas por el troceado se presentaban como completas. La versión cuatro gradúa el rechazo (responde la parte cubierta y dice cuál no), construye las cadenas paso a paso y pide listas completas. El recorte de las listas lo arreglé en la recuperación, no en el prompt: las restricciones duras van en código y el criterio va en el prompt.</aside>
+</section>

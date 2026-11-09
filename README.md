@@ -387,7 +387,7 @@ data/eval/        golden.jsonl, heldout.jsonl, answers*.jsonl, *.judge-<model>.j
 data/demo/        cached_answers.jsonl (recorded demo)
 docs/             rubric (brief → evidence), sources, architecture, decisions, prompt
                   iterations, evaluation reports (golden + held-out), demo script and
-                  speaker notes (EN / ES), slides/ (+ offline PDF), img/
+                  speaker notes (EN / ES), slides/ and slides_es/ (sources + offline PDFs), img/
 docs/brand/       DNR identity: brand manual, logo files; docs/brand_application.md maps it
                   onto the slides, the app theme and the charts
 static/fonts/     Inter and JetBrains Mono (latin, OFL) served by the Streamlit app

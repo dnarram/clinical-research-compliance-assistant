@@ -1,0 +1,47 @@
+{
+  "v": 4,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-08T11:05:00Z"
+  },
+  "lists": "css",
+  "title": "Asistente de cumplimiento en investigación clínica — Demo",
+  "order": [
+    "cover",
+    "problem",
+    "architecture",
+    "prompt",
+    "demo",
+    "evaluation",
+    "next"
+  ],
+  "sections": {
+    "s1": {
+      "description": "Por qué un asistente de cumplimiento y por qué este autor",
+      "start": "cover"
+    },
+    "s2": {
+      "description": "Cómo está construido: el grafo, la base de conocimiento y tres decisiones",
+      "start": "architecture"
+    },
+    "s3": {
+      "description": "Qué muestra la demo en vivo y qué dicen los números",
+      "start": "demo"
+    },
+    "s4": {
+      "description": "Límites y lo que viene después",
+      "start": "next"
+    }
+  },
+  "faces": {
+    "inter": {
+      "family": "Inter",
+      "href": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap"
+    }
+  },
+  "designSystems": []
+}

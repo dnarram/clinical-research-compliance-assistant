@@ -1,6 +1,8 @@
 # Demo script — 5–10 minutes
 
-Slides: <https://claude.ai/artifact/FyZnhuoZ1R3cee1PtUsdgg> (7 slides; export to PPTX/PDF from its Share menu). **Offline copy:** [`slides/clinical-research-compliance-assistant-deck.pdf`](slides/clinical-research-compliance-assistant-deck.pdf) (16:9, regenerated with `uv run python docs/slides/build_pdf.py`, needs Google Chrome). Slide sources are kept in `docs/slides/`; the presenter-view notes (`<aside>`) are in Spanish and are not in the PDF — use `notas_orador_es.md`. The same notes, slide by slide, with timings and likely questions: [`notas_orador_es.md`](notas_orador_es.md).
+Slides (English): <https://claude.ai/artifact/FyZnhuoZ1R3cee1PtUsdgg> (7 slides; export to PPTX/PDF from its Share menu). **Offline copy:** [`slides/clinical-research-compliance-assistant-deck.pdf`](slides/clinical-research-compliance-assistant-deck.pdf) (16:9, regenerated with `uv run python docs/slides/build_pdf.py`, needs Google Chrome). Slide sources are kept in `docs/slides/`; the presenter-view notes (`<aside>`) are in Spanish and are not in the PDF — use `notas_orador_es.md`.
+
+**Spanish deck** (same design and notes, slide text translated): <https://claude.ai/artifact/7f6S2LKkrRGGFvqDd2uVqU> · offline copy [`slides_es/clinical-research-compliance-assistant-deck-es.pdf`](slides_es/clinical-research-compliance-assistant-deck-es.pdf) · sources in `docs/slides_es/` (`uv run python docs/slides/build_pdf.py --slides=docs/slides_es`). The demo questions stay as they are asked in the demo (Q1 in English). The same notes, slide by slide, with timings and likely questions: [`notas_orador_es.md`](notas_orador_es.md).
 
 Rehearse twice with a timer. Have **three windows** open before starting: the Streamlit
 Cloud app (public URL), a local `uv run streamlit run app.py` as fallback, and the executed

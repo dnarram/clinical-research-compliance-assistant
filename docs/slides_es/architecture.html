@@ -1,0 +1,54 @@
+<section id="architecture" data-transition="fade" style="background:#E2E8F0;color:#162B43;font-family:'Inter', Arial, sans-serif;padding:128px 128px 128px;display:flex;flex-direction:column;gap:24px">
+<h2 style="font-family:'Inter', Arial, sans-serif;font-size:64px;font-weight:700;line-height:1.1">Un grafo explícito: la base de conocimiento se usa en cada consulta</h2>
+<div style="position:relative;height:340px;width:1664px">
+<div style="position:absolute;left:0;top:120px;width:220px;display:flex;flex-direction:column;gap:6px;align-items:center">
+<x-icon name="Chat" style="width:56px;height:56px;color:#B95319"></x-icon>
+<p style="font-size:26px;font-weight:600;text-align:center">pregunta<br>EN / ES</p>
+</div>
+<div style="position:absolute;left:300px;top:100px;width:300px;background:#162B43;padding:28px;border-radius:16px;display:flex;flex-direction:column;gap:6px">
+<h3 style="font-family:'JetBrains Mono', Menlo, monospace;font-size:30px;font-weight:600;color:#E29A5C">rewrite_query</h3>
+<p style="font-size:24px;line-height:1.3;color:#CBD5E1">historial → pregunta autónoma en inglés</p>
+</div>
+<div style="position:absolute;left:680px;top:100px;width:300px;background:#162B43;padding:28px;border-radius:16px;display:flex;flex-direction:column;gap:6px">
+<h3 style="font-family:'JetBrains Mono', Menlo, monospace;font-size:30px;font-weight:600;color:#E29A5C">retrieve</h3>
+<p style="font-size:24px;line-height:1.3;color:#CBD5E1">umbral → enrutado por documento → MMR → expansión a la sección</p>
+</div>
+<div style="position:absolute;left:1120px;top:0;width:340px;background:#162B43;padding:28px;border-radius:16px;display:flex;flex-direction:column;gap:6px">
+<h3 style="font-family:'JetBrains Mono', Menlo, monospace;font-size:30px;font-weight:600;color:#E2E8F0">generate</h3>
+<p style="font-size:22px;line-height:1.3;color:#CBD5E1">respuesta en el idioma del usuario, citas [n]</p>
+</div>
+<div style="position:absolute;left:1120px;top:180px;width:340px;background:#B95319;padding:28px;border-radius:16px;display:flex;flex-direction:column;gap:6px">
+<h3 style="font-family:'JetBrains Mono', Menlo, monospace;font-size:30px;font-weight:600;color:#FFFFFF">refuse</h3>
+<p style="font-size:22px;line-height:1.3;color:#FFFFFF">“no está en mi base de conocimiento, cubro…” — sin llamada al LLM</p>
+</div>
+<div style="position:absolute;left:1500px;top:120px;width:164px;display:flex;flex-direction:column;gap:6px;align-items:center">
+<x-icon name="Verified" style="width:56px;height:56px;color:#B95319"></x-icon>
+<p style="font-size:26px;font-weight:600;text-align:center">respuesta +<br>fuentes</p>
+</div>
+<x-connector x1="220" y1="177" x2="300" y2="177" head="end" style="color:#64748B;border-width:4px"></x-connector>
+<x-connector x1="600" y1="177" x2="680" y2="177" head="end" style="color:#64748B;border-width:4px"></x-connector>
+<x-connector x1="980" y1="160" x2="1120" y2="77" head="end" style="color:#162B43;border-width:4px"></x-connector>
+<x-connector x1="980" y1="195" x2="1120" y2="257" head="end" style="color:#B95319;border-width:4px"></x-connector>
+<x-connector x1="1460" y1="77" x2="1500" y2="177" head="end" style="color:#64748B;border-width:4px"></x-connector>
+<x-connector x1="1460" y1="257" x2="1500" y2="177" head="end" style="color:#64748B;border-width:4px"></x-connector>
+<p style="position:absolute;left:1000px;top:60px;width:120px;font-size:24px;color:#162B43;font-weight:600">fundada</p>
+<p style="position:absolute;left:1000px;top:215px;width:120px;font-size:24px;color:#B95319;font-weight:600">bajo el umbral</p>
+</div>
+<div style="display:flex;gap:32px">
+<div style="flex:1;background:#FAFAFA;padding:32px;border-radius:16px;border:1px solid #CBD5E1;display:flex;flex-direction:column;gap:10px">
+<h3 style="font-size:30px;font-weight:600;color:#B95319">Base idempotente</h3>
+<p style="font-size:22px;line-height:1.35;color:#2C3E50">801 fragmentos, gemini-embedding-2. Caché de embeddings versionada + manifiesto: nada se re‑embebe y Chroma se reconstruye desde ella sin llamadas a la API — también en Streamlit Cloud.</p>
+</div>
+<div style="flex:1;background:#FAFAFA;padding:32px;border-radius:16px;border:1px solid #CBD5E1;display:flex;flex-direction:column;gap:10px">
+<h3 style="font-size:30px;font-weight:600;color:#B95319">Umbral calibrado con datos</h3>
+<p style="font-size:22px;line-height:1.35;color:#2C3E50">Umbral 0,69 leído de las consultas de dominio frente a las de fuera de dominio, no fijado a ojo. Después, filtro por los documentos que nombra la pregunta y cada fragmento ampliado a su sección para que las listas lleguen completas.</p>
+</div>
+<div style="flex:1;background:#FAFAFA;padding:32px;border-radius:16px;border:1px solid #CBD5E1;display:flex;flex-direction:column;gap:10px">
+<h3 style="font-size:30px;font-weight:600;color:#B95319">Memoria acotada</h3>
+<p style="font-size:22px;line-height:1.35;color:#2C3E50">Checkpointer de LangGraph por thread_id; al modelo llegan los últimos 10 mensajes; los pasajes recuperados viven en el estado, no en el historial.</p>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;font-size:22px;color:#2C3E50;width:1300px">Gemini 3.5 Flash-Lite · gemini-embedding-2 · ChromaDB · LangGraph · Streamlit — github.com/dnarram</p>
+<img src="SimpleClaro.png" alt="DNR — David Naranjo Ramírez" style="position:absolute;right:128px;bottom:48px;width:150px;height:89px;object-fit:contain">
+<aside>¿Por qué un grafo explícito y no un agente con herramientas que decide si buscar? Tres razones: el enunciado exige usar la base de conocimiento en cada consulta; en el plan gratuito cada llamada extra al modelo cuesta; y una topología fija se traza y se prueba con facilidad. El flujo: la pregunta se reescribe como una pregunta autónoma en inglés (resuelve referencias a turnos anteriores y traduce); la recuperación la puntúa y aplica el umbral; y el enrutador la manda a generate o a un rechazo con plantilla que nunca llega al modelo. Si la pregunta nombra documentos, las posiciones del top‑6 se reparten entre ellos; y cada fragmento se amplía a su sección completa, porque un fragmento de 500 caracteres había partido una definición por la mitad. Tres decisiones que defiendo: la caché de embeddings versionada (nada se re‑embebe y Chroma se reconstruye sin llamadas a la API); el umbral de rechazo calibrado con datos, no fijado a ojo, y pasajes completos; y la memoria con ventana de diez mensajes, manteniendo el contexto recuperado fuera del historial.</aside>
+</section>
