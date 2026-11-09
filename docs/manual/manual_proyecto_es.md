@@ -885,5 +885,5 @@ ampliación a la sección completa. Antes de esa mejora, la respuesta se detení
 | `docs/sources.md` | Fuentes, ediciones y derechos de uso |
 | `docs/brand_application.md` | Aplicación de la identidad visual DNR |
 | `docs/notas_orador_es.md` | Guion de la presentación oral |
-| `docs/articulo/discurso_presentacion_es.md` | Discurso extenso, base para un artículo académico |
+| `docs/articulo/discurso_presentacion_es.md` | Discurso de la presentación (unos 10 minutos), base para un artículo académico |
 | `notebooks/compliance_assistant.ipynb` | El cuaderno con todo el proceso ejecutado |
