@@ -158,7 +158,7 @@ print(json.dumps(example.metadata, indent=2))
 print(example.text[:300], "…")
 
 fig, ax = plt.subplots(figsize=(7, 2.8))
-ax.hist([len(c.text) for chunks in all_chunks.values() for c in chunks], bins=30, color="#4C72B0")
+ax.hist([len(c.text) for chunks in all_chunks.values() for c in chunks], bins=30, color="#B95319")  # DNR copper (docs/brand_application.md)
 ax.set_xlabel("chunk length (characters)"); ax.set_ylabel("chunks"); ax.set_title("Chunk length distribution (500/50 recursive splitter)")
 plt.tight_layout(); plt.show()
 """)
@@ -224,10 +224,12 @@ threshold = settings.resolved_threshold()
 en, es, ood = calibration["in_domain_max_scores"]["en"], calibration["in_domain_max_scores"]["es"], calibration["out_of_domain_max_scores"]
 
 fig, ax = plt.subplots(figsize=(7, 2.6))
-for y, (label, xs, color) in enumerate([("in-domain EN", en, "#2a9d8f"), ("in-domain ES", es, "#264653"), ("out-of-domain", ood, "#e76f51")]):
+# DNR palette: in-domain in the copper ramp (dark -> mid), out-of-domain in slate, gate in navy.
+for y, (label, xs, color) in enumerate([("in-domain EN", en, "#8C4516"), ("in-domain ES", es, "#B95319"), ("out-of-domain", ood, "#64748B")]):
     ax.scatter(xs, [y]*len(xs), s=60, color=color, label=label, zorder=3)
-ax.axvline(threshold, color="black", ls="--", lw=1)
-ax.text(threshold, 2.35, f" threshold {threshold}", va="center", fontsize=9)
+ax.axvline(threshold, color="#162B43", ls="--", lw=1)
+ax.set_ylim(-0.6, 2.75)
+ax.text(threshold, 2.45, f" threshold {threshold}", va="center", fontsize=9, color="#162B43")
 ax.set_yticks([0, 1, 2]); ax.set_yticklabels(["in-domain EN", "in-domain ES", "out-of-domain"]); ax.set_xlabel("max relevance score of top-3 (cosine)")
 ax.set_title("Calibrated refusal threshold (data/kb/calibration.json)"); ax.grid(axis="x", alpha=.3)
 plt.tight_layout(); plt.show()

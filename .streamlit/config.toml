@@ -1,9 +1,34 @@
+# Visual identity: DNR brand manual v2.0 (docs/brand/ManualIdentidadMarcaDNR_v2.pdf),
+# light mode. Every colour below is a value from the manual; see docs/brand_application.md.
 [theme]
 base = "light"
-primaryColor = "#2a6f97"
+primaryColor = "#B95319"             # Naranja Cobre — CTA, focus, links (4.87:1 with white text)
+backgroundColor = "#FAFAFA"          # Blanco Nieve — canvas
+secondaryBackgroundColor = "#E2E8F0" # upper end of the light range — sidebar, inputs, code
+textColor = "#2C3E50"                # Antracita — body text (10.5:1)
+linkColor = "#B95319"
+borderColor = "#CBD5E1"
+codeBackgroundColor = "#E2E8F0"
+font = "Inter, sans-serif"
+headingFont = "Inter, sans-serif"
+codeFont = "JetBrains Mono, monospace"
+baseRadius = "medium"
+
+# Self-hosted latin subsets (SIL Open Font License) so the demo does not depend on
+# Google Fonts being reachable; served from ./static via enableStaticServing.
+[[theme.fontFaces]]
+family = "Inter"
+url = "app/static/fonts/Inter-latin.woff2"
+weight = "400 800"
+
+[[theme.fontFaces]]
+family = "JetBrains Mono"
+url = "app/static/fonts/JetBrainsMono-latin.woff2"
+weight = "400 700"
 
 [server]
 headless = true
+enableStaticServing = true
 
 [browser]
 gatherUsageStats = false

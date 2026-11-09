@@ -107,3 +107,10 @@ docs/                       living documentation; source for README and the demo
 - Graph nodes log one line each (`[rewrite_query] ...`) so the notebook trace reads
   like the class examples.
 - Nothing prints the API key. Print `len(key)` if a sanity check is needed.
+- **Visual identity = the DNR brand manual** (`docs/brand/ManualIdentidadMarcaDNR_v2.pdf`),
+  mapped in `docs/brand_application.md`. Slides, the Streamlit theme, README imagery and
+  every chart use only the manual's colours (copper `#B95319` / amber `#E65F19` as the one
+  accent, navy `#162B43` as ink, slate `#64748B` for "the rest"), Inter for text and
+  JetBrains Mono for code, flat colours (no gradients, glow or shadows), the *Claro* logos
+  on light backgrounds and *Oscuro* on dark ones, never pure black. Deck PDF:
+  `uv run python docs/slides/build_pdf.py`.

@@ -7,6 +7,7 @@ speaker notes and writes one 1920x1080 page per slide (fonts need network; Arial
 
 import json
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -77,6 +78,8 @@ def page(sections):
 
 
 sections = [(repo / f"docs/slides/{n}.html").read_text(encoding="utf-8") for n in deck["order"]]
+for png in (repo / "docs/slides").glob("*.png"):  # logos referenced by <img src> beside the html
+    shutil.copy(png, root / png.name)
 (root / "deck.html").write_text(page(sections), encoding="utf-8")
 for i, s in enumerate(sections, 1):
     (root / f"slide{i}.html").write_text(page([s]), encoding="utf-8")

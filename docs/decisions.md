@@ -204,6 +204,18 @@ different fingerprint, its modules are dropped from `sys.modules` and re-importe
 cached Assistant is keyed on the fingerprint with `max_entries=1`. `tests/test_app.py`
 loads the app offline and simulates a stale deploy.
 
+## 2026-11-09 — Visual identity: the DNR brand manual applied to every visual surface
+
+The deck, its offline PDF, the Streamlit theme, the README imagery and the notebook charts
+now follow the author's brand manual (`docs/brand/ManualIdentidadMarcaDNR_v2.pdf`), as the
+FAERS project did. Rules and the colour-role table are in `docs/brand_application.md`.
+Decisions worth recording: both modes are used (dark cover/demo/closing, light content
+slides, light app) with the matching logo finish on each; charts use copper for in-domain
+and slate for out-of-domain rather than a categorical palette; fonts are Inter and JetBrains
+Mono, self-hosted for the app so the demo does not depend on Google Fonts; the only
+notebook cells re-executed were the two plot cells (offline), so no API quota was spent and
+the answers in §7–§10 are unchanged.
+
 ## 2026-11-09 — Pre-delivery audit: two independent reviews, fixes applied
 
 Two reviewers were run without being told what to expect: a code audit and an "external

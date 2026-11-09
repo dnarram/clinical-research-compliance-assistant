@@ -1,3 +1,10 @@
+<p align="right">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/SimpleOscuro.png">
+    <img src="docs/brand/SimpleClaro.png" alt="DNR — David Naranjo Ramírez" width="150">
+  </picture>
+</p>
+
 # Clinical Research Compliance Assistant
 
 An expert question-answering agent on **Good Clinical Practice (ICH E6(R3))**, **expedited
@@ -380,7 +387,10 @@ data/eval/        golden.jsonl, heldout.jsonl, answers*.jsonl, *.judge-<model>.j
 data/demo/        cached_answers.jsonl (recorded demo)
 docs/             rubric (brief → evidence), sources, architecture, decisions, prompt
                   iterations, evaluation reports (golden + held-out), demo script and
-                  speaker notes (EN / ES), slides/, img/
+                  speaker notes (EN / ES), slides/ (+ offline PDF), img/
+docs/brand/       DNR identity: brand manual, logo files; docs/brand_application.md maps it
+                  onto the slides, the app theme and the charts
+static/fonts/     Inter and JetBrains Mono (latin, OFL) served by the Streamlit app
 ```
 
 Development: `uv run pytest` · `uv run ruff check .` · `pre-commit install`.
@@ -397,4 +407,5 @@ information, **not legal or medical advice**.
 ---
 
 Academic project developed during the Master in Data Science & AI at
-[Evolve Academy](https://evolveacademy.es).
+[Evolve Academy](https://evolveacademy.es). Visual identity: DNR brand manual v2.0
+([`docs/brand_application.md`](docs/brand_application.md)).

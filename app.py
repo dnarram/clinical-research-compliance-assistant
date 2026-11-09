@@ -75,9 +75,14 @@ from compliance_assistant.agent import Assistant
 from compliance_assistant.config import MissingApiKeyError, load_settings
 from compliance_assistant.ingestion import load_sources
 
+_BRAND = _ROOT / "docs" / "brand"  # DNR identity assets; palette in .streamlit/config.toml
 st.set_page_config(
-    page_title="Clinical Research Compliance Assistant", page_icon="🧪", layout="wide"
+    page_title="Clinical Research Compliance Assistant",
+    page_icon=str(_BRAND / "favicon64x64.png"),
+    layout="wide",
 )
+# SimpleClaro on the light canvas (manual §2); the isolated N when the sidebar is collapsed.
+st.logo(str(_BRAND / "SimpleClaro.png"), size="large", icon_image=str(_BRAND / "favicon.png"))
 
 
 @st.cache_resource(show_spinner="Loading the knowledge base…", max_entries=1)
@@ -91,7 +96,7 @@ settings = load_settings()
 
 # --- sidebar --------------------------------------------------------------------------------
 with st.sidebar:
-    st.title("🧪 Compliance Assistant")
+    st.title("Compliance Assistant")
     st.caption(
         "Expert Q&A on **ICH E6(R3)** Good Clinical Practice, **ICH E2A** expedited safety "
         "reporting and the **WMA Declaration of Helsinki (2024)**. Ask in English or Spanish."
@@ -131,6 +136,11 @@ except MissingApiKeyError as exc:
 
 # --- conversation -----------------------------------------------------------------------------
 st.markdown("#### Ask about GCP, safety reporting timelines, informed consent, essential records…")
+# The one structural use of copper (manual §8, header band): a 2px rule under the title.
+st.markdown(
+    '<hr style="border:none;border-top:2px solid #B95319;margin:0 0 1rem 0">',
+    unsafe_allow_html=True,
+)
 if not st.session_state.messages:
     examples = [
         "What is the timeline for expedited reporting of a fatal unexpected ADR?",

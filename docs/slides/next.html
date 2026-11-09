@@ -1,12 +1,12 @@
-<section id="next" data-transition="fade" style="background:#15181c;color:#f4f5f2;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:44px">
-<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#f4f5f2">What it does not do yet, and what comes next</h2>
+<section id="next" data-transition="fade" style="background:#0F141C;color:#E2E8F0;font-family:'Inter', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:44px">
+<h2 style="font-family:'Inter', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1.1;color:#E2E8F0">What it does not do yet, and what comes next</h2>
 <div style="display:flex;gap:40px;align-items:stretch">
-<div style="flex:1;background:#1f242b;padding:40px;border-radius:16px;display:flex;flex-direction:column;gap:18px">
+<div style="flex:1;background:#1E2530;padding:40px;border-radius:16px;border:1px solid #2D3748;display:flex;flex-direction:column;gap:18px">
 <div style="display:flex;gap:16px;align-items:center">
-<x-icon name="Warning" style="width:44px;height:44px;color:#f0a35c"></x-icon>
-<h3 style="font-size:34px;font-weight:600;color:#f4f5f2">Limitations</h3>
+<x-icon name="Warning" style="width:44px;height:44px;color:#E65F19"></x-icon>
+<h3 style="font-size:34px;font-weight:600;color:#E2E8F0">Limitations</h3>
 </div>
-<ul style="font-size:27px;line-height:1.45;color:#c9d1d9">
+<ul style="font-size:27px;line-height:1.45;color:#CBD5E1">
 <li>Three documents by design: EU CTR, GVP modules and FDA rules are refused or answered only from what E6(R3) says</li>
 <li>Multi-hop questions: one retrieval pass misses a hop — the reporting chain still lacks the 15-day timeline</li>
 <li>The refusal gate is corpus- and model-specific: change either, recalibrate</li>
@@ -14,12 +14,12 @@
 <li>Free tier: 1,000 embedded texts per day — the corpus build used 800 of them once, so query vectors are cached too</li>
 </ul>
 </div>
-<div style="flex:1;background:#1f242b;padding:40px;border-radius:16px;display:flex;flex-direction:column;gap:18px">
+<div style="flex:1;background:#1E2530;padding:40px;border-radius:16px;border:1px solid #2D3748;display:flex;flex-direction:column;gap:18px">
 <div style="display:flex;gap:16px;align-items:center">
-<x-icon name="Lightning" style="width:44px;height:44px;color:#7cc5ff"></x-icon>
-<h3 style="font-size:34px;font-weight:600;color:#f4f5f2">Next steps, in order of value</h3>
+<x-icon name="Lightning" style="width:44px;height:44px;color:#E65F19"></x-icon>
+<h3 style="font-size:34px;font-weight:600;color:#E2E8F0">Next steps, in order of value</h3>
 </div>
-<ol style="font-size:27px;line-height:1.45;color:#c9d1d9">
+<ol style="font-size:27px;line-height:1.45;color:#CBD5E1">
 <li>Query decomposition: one retrieval per step of a multi-hop question</li>
 <li>EMA GVP Module VI and EU CTR 536/2014 — ingestion is per document and idempotent</li>
 <li>Faithfulness judge: answer vs. retrieved passages (today's judge checks correctness vs. expert references)</li>
@@ -29,8 +29,9 @@
 </div>
 </div>
 <div style="display:flex;gap:40px;align-items:center">
-<p style="font-size:30px;font-weight:600;color:#f4f5f2">Thank you — questions?</p>
-<p style="font-size:26px;color:#8b949e">github.com/dnarram/clinical-research-compliance-assistant · live app on Streamlit Cloud · regulatory information, not legal or medical advice</p>
+<p style="font-size:30px;font-weight:600;color:#E2E8F0">Thank you — questions?</p>
+<p style="font-size:26px;color:#94A3B8;width:950px">github.com/dnarram/clinical-research-compliance-assistant · live app on Streamlit Cloud · regulatory information, not legal or medical advice</p>
 </div>
+<img src="SimpleOscuro.png" alt="DNR — David Naranjo Ramírez" style="position:absolute;right:128px;bottom:96px;width:200px;height:119px;object-fit:contain">
 <aside>Lo que no hace: solo tres documentos; una pregunta de varios saltos aún pierde un paso, porque una sola pasada de recuperación no trae todos los saltos; el umbral hay que recalibrarlo si cambia el corpus o el modelo; la memoria vive en el proceso; y el plan gratuito cuenta textos embebidos por día. Siguientes pasos, por orden de valor: descomponer las preguntas de varios saltos en una búsqueda por paso; añadir los textos europeos de farmacovigilancia y de ensayos clínicos (GVP VI, Reglamento 536/2014); un juez de fidelidad respuesta‑frente‑a‑pasajes; recuperación híbrida; y después un guardián de entrada y memoria persistente. Gracias. ¿Preguntas?</aside>
 </section>
