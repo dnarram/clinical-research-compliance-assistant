@@ -48,11 +48,10 @@ no vio.
 ## II. El problema
 
 Viernes, 17:50. Un monitor recibe el aviso de un acontecimiento adverso grave. ¿Es un SUSAR?
-¿Quién lo notifica, a quién, en qué plazo? La respuesta está repartida: los plazos en la E2A, las
-obligaciones de investigador y promotor en la E6(R3), los principios éticos en Helsinki. Noventa
-páginas en inglés. Y en este ámbito no basta con responder: hay que demostrar de dónde sale. En una
-inspección no vale «creo que eran quince días»; vale «E2A, sección III.B, página 7». La
-trazabilidad es el requisito.
+¿Quién lo notifica, a quién, en qué plazo? La respuesta está repartida entre la E2A, la E6(R3) y
+Helsinki: noventa páginas en inglés. Y en este ámbito no basta con responder: hay que demostrar de
+dónde sale. En una inspección no vale «creo que eran quince días»; vale «E2A, sección III.B, página
+7». La trazabilidad es el requisito.
 
 Un asistente generalista no sirve: un modelo de lenguaje genera texto plausible y a veces falso
 con aplomo, y un plazo inventado es el peor fallo porque parece correcto. RAG ataca eso: buscar
@@ -88,18 +87,16 @@ una línea determinista.
 La recuperación tiene cuatro etapas. Primero la puerta: si la mejor puntuación no alcanza 0,69,
 la pregunta va a un rechazo con plantilla sin llamar al modelo; lo que no llega al modelo no se
 puede inventar. Segundo, el enrutado: si la pregunta nombra documentos, las seis plazas se reparten
-entre ellos; la puerta usa las puntuaciones sin filtrar, así que el enrutado nunca convierte un
-rechazo en respuesta. Tercero, diversidad con relevancia marginal máxima. Cuarto, la etapa más
-útil: cada fragmento se amplía a su sección completa si no supera los 4.000 caracteres. Nació de un
-fallo real: la definición de «grave» tiene cinco criterios, el fragmento traía dos y el modelo la
-daba por completa. No se arregla pidiéndoselo, porque no puede completar lo que no ve; se arregla
+entre ellos, siempre después de la puerta. Tercero, diversidad con relevancia marginal máxima.
+Cuarto, la etapa más útil: cada fragmento se amplía a su sección completa. Nació de un fallo real:
+la definición de «grave» tiene cinco criterios, el fragmento traía dos y el modelo la daba por
+completa. No se arregla pidiéndoselo, porque no puede completar lo que no ve; se arregla
 entregándole la sección entera.
 
-La memoria es un checkpointer por hilo: al modelo llegan los diez últimos mensajes y los pasajes
-viven fuera del historial. Y una decisión de ingeniería lo sostiene todo: el plan gratuito permite
-mil textos embebidos al día y el corpus consume ochocientos, así que la fuente de verdad es una
-caché de embeddings versionada; nada se re‑embebe y Chroma se reconstruye en segundos sin
-llamadas. Todo con 77 pruebas sin red y desplegado en Streamlit Cloud.
+La memoria es un checkpointer por hilo: al modelo llegan los diez últimos mensajes. Y una decisión
+de ingeniería lo sostiene todo: el plan gratuito permite mil textos embebidos al día y el corpus
+consume ochocientos, así que la fuente de verdad es una caché de embeddings versionada y Chroma se
+reconstruye en segundos sin llamadas. Todo con 77 pruebas sin red y desplegado en Streamlit Cloud.
 
 ## VI. El prompt de sistema
 
