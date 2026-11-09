@@ -37,13 +37,13 @@ versión de ocho, se omiten las partes III y X, cuyo contenido está pensado par
 ## I. Apertura
 
 Buenos días. Presento un asistente de pregunta y respuesta para el cumplimiento normativo en
-investigación clínica. Responde sobre tres normas —la ICH E6(R3) de Buenas Prácticas Clínicas, la
-ICH E2A de notificación expeditiva de seguridad y la Declaración de Helsinki de 2024—, en español
-o en inglés, citando literalmente documento, sección y página, recordando la conversación y
-rechazando lo que sus fuentes no cubren. Es un sistema RAG con Gemini, ChromaDB y LangGraph, pero
-quiero contar tres ideas: la decisión de no responder se toma antes de que intervenga el modelo y
-con un umbral medido; muchos fallos que parecen de redacción son de recuperación; y la fiabilidad
-se demuestra con preguntas que el autor no vio.
+investigación clínica, sobre tres normas: la ICH E6(R3) de Buenas Prácticas Clínicas, la ICH E2A de
+notificación expeditiva de seguridad y la Declaración de Helsinki de 2024. Responde en español o en
+inglés, cita literalmente documento, sección y página, recuerda la conversación y rechaza lo que
+sus fuentes no cubren. Es un sistema RAG con Gemini, ChromaDB y LangGraph, y quiero contar tres
+ideas: la decisión de no responder se toma antes de que intervenga el modelo; muchos fallos que
+parecen de redacción son de recuperación; y la fiabilidad se demuestra con preguntas que el autor
+no vio.
 
 ## II. El problema
 
@@ -62,12 +62,10 @@ respuesta es correcta; sin eso, evaluar un asistente experto se reduce a comprob
 
 ## III. Objetivos y preguntas de investigación
 
-El objetivo fue cumplir el enunciado —ChromaDB con embeddings de Gemini, agente LangGraph con
-memoria, prompt justificado, interfaz de chat— y demostrar con datos que el sistema es fiable.
-Cuatro preguntas: ¿puede un RAG con modelos ligeros citar a nivel de sección y página? ¿Separa un
-umbral calibrado, aplicado antes de generar, lo que la base cubre de lo que no? ¿Los fallos se
-corrigen mejor en el prompt o en la recuperación? ¿Y se mantienen las mejoras en preguntas
-nuevas?
+El objetivo fue cumplir el enunciado y demostrar con datos que el sistema es fiable. Cuatro
+preguntas: ¿puede un RAG con modelos ligeros citar a nivel de sección y página? ¿Separa un umbral
+calibrado, aplicado antes de generar, lo que la base cubre de lo que no? ¿Los fallos se corrigen
+mejor en el prompt o en la recuperación? ¿Y se mantienen las mejoras en preguntas nuevas?
 
 ## IV. El corpus
 
@@ -79,10 +77,9 @@ editores y se verifican con su huella SHA‑256.
 
 ## V. La arquitectura
 
-Descarté el agente que decide si busca: el enunciado exige usar la base en cada consulta, cada
-llamada extra consume cuota y una topología fija se prueba con facilidad. El agente es un grafo
-explícito de cuatro nodos: reescribir, recuperar, generar, rechazar. El modelo nunca decide si se
-consulta la base.
+Descarté el agente que decide si busca: el enunciado exige usar la base en cada consulta y una
+topología fija se prueba con facilidad. El agente es un grafo explícito de cuatro nodos: reescribir,
+recuperar, generar, rechazar. El modelo nunca decide si se consulta la base.
 
 La reescritura convierte la pregunta, con el historial, en una pregunta autónoma en inglés: así
 resuelve «¿y para las demás?» y salva el idioma del corpus. El idioma de la respuesta se impone con
@@ -106,13 +103,12 @@ llamadas. Todo con 77 pruebas sin red y desplegado en Streamlit Cloud.
 
 ## VI. El prompt de sistema
 
-Cuatro versiones, cada una documentada con lo observado. La primera, el prompt de clase, respondía
-bien pero sin citas. La tercera añadió citas por frase, atribución cuando las normas difieren y la
-política de idioma. Al ejecutar la evaluación completa y leer todas las respuestas aparecieron tres
-fallos: una pregunta de varios pasos rechazada entera, su rechazo en español escrito en inglés y
-listas cortadas dadas por completas. La cuarta gradúa el rechazo, construye las cadenas paso a paso
-y exige listas completas. El principio: las restricciones duras van en el código; el criterio, en el
-prompt.
+Cuatro versiones documentadas. La primera, el prompt de clase, respondía bien pero sin citas. La
+tercera añadió citas por frase, atribución cuando las normas difieren y la política de idioma; al
+leer todas las respuestas de la evaluación aparecieron tres fallos: una pregunta de varios pasos
+rechazada entera, su rechazo en español escrito en inglés y listas cortadas dadas por completas. La
+cuarta gradúa el rechazo, construye las cadenas paso a paso y exige listas completas. El principio:
+las restricciones duras van en el código; el criterio, en el prompt.
 
 ## VII. La demostración
 
@@ -138,13 +134,13 @@ ejecutadas una sola vez.
 
 ## IX. Qué salió
 
-Con las mismas preguntas y la misma puntuación: la cobertura de palabras clave sube de 0,82 a
-0,97; la corrección juzgada, de 0,78 a 0,95 en el golden set y de 0,95 a 1,00 en el reservado. El
-acierto de documento se mantuvo en 1,0; ninguna pregunta del dominio fue rechazada y todas las
+Con las mismas preguntas y la misma puntuación, la corrección juzgada sube de 0,78 a 0,95 en el
+golden set y de 0,95 a 1,00 en el reservado; la cobertura de palabras clave, de 0,82 a 0,97. El
+acierto de documento se mantuvo en 1,0, ninguna pregunta del dominio fue rechazada y todas las
 ajenas sí. El reservado mejora menos porque sus preguntas caben en una sola sección; lo relevante
 es que no hubo regresión. Quedan dos fallos que informo en lugar de ajustar: la cadena de varios
-saltos aún pierde un eslabón, la única respuesta incorrecta de la versión final; y el enrutado
-elige a veces secciones generales en lugar del principio exacto, aunque la respuesta lo cite.
+saltos aún pierde un eslabón, la única respuesta incorrecta de la versión final, y el enrutado
+elige a veces secciones generales en lugar del principio exacto.
 
 ## X. Qué significa y qué no
 
