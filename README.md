@@ -17,6 +17,8 @@ Final project of the Generative AI module · Master in Data Science & AI · Evol
 David Naranjo Ramírez
 
 > **Live demo:** <https://clinical-research-compliance-assistant-eaksdytvqzbpuvthkakvrd.streamlit.app> · **Notebook:** [`notebooks/compliance_assistant.ipynb`](notebooks/compliance_assistant.ipynb) · **Brief → evidence:** [`docs/rubric.md`](docs/rubric.md)
+>
+> **For non-technical readers (Spanish):** [project manual](docs/manual/manual_proyecto_es.md) ([PDF](docs/manual/manual_proyecto_es.pdf)) · **Full presentation text, basis for an academic article:** [discourse](docs/articulo/discurso_presentacion_es.md) ([PDF](docs/articulo/discurso_presentacion_es.pdf))
 
 **Stack:** Python 3.12 · Google Gemini (`gemini-3.5-flash-lite`, `gemini-embedding-2`) ·
 ChromaDB · LangGraph + LangChain · Jupyter · Streamlit · uv · pytest · ruff
@@ -387,7 +389,9 @@ data/eval/        golden.jsonl, heldout.jsonl, answers*.jsonl, *.judge-<model>.j
 data/demo/        cached_answers.jsonl (recorded demo)
 docs/             rubric (brief → evidence), sources, architecture, decisions, prompt
                   iterations, evaluation reports (golden + held-out), demo script and
-                  speaker notes (EN / ES), slides/ and slides_es/ (sources + offline PDFs), img/
+                  speaker notes (EN / ES), slides/ and slides_es/ (sources + offline PDFs), img/,
+                  manual/ (lay manual, ES) and articulo/ (full discourse, ES), both with PDFs
+                  built by docs/build_doc_pdf.py
 docs/brand/       DNR identity: brand manual, logo files; docs/brand_application.md maps it
                   onto the slides, the app theme and the charts
 static/fonts/     Inter and JetBrains Mono (latin, OFL) served by the Streamlit app
