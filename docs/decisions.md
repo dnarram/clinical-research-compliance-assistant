@@ -204,6 +204,22 @@ different fingerprint, its modules are dropped from `sys.modules` and re-importe
 cached Assistant is keyed on the fingerprint with `max_entries=1`. `tests/test_app.py`
 loads the app offline and simulates a stale deploy.
 
+## 2026-11-09 — Notebook audit and Spanish edition
+
+Findings in `compliance_assistant.ipynb`, all fixed in `build_notebook.py` and re-executed
+offline (no LLM calls; query vectors are cached): the metric table in §9 carried the Markdown
+header row (`| metric | value | value |`) because `metric_table` matched it — skipped; the
+sanity cell echoed a bare float (`show()` return value) — assigned; three prose claims were
+inaccurate ("hand-written"/"hand-checked" golden set and demo questions were drafted with AI
+assistance from the indexed text and reviewed by the author — now stated as such); §11 lacked
+the multi-hop and routing limitations, the judge caveat and the current order of next steps
+(query decomposition first); execution counts were out of order after earlier partial re-runs
+— renumbered. The committed sources now match the builder cell for cell (asserted).
+
+Spanish edition: `notebooks/compliance_assistant_es.ipynb`, built by `build_notebook_es.py`
+from the executed English notebook — identical code cells and outputs, every Markdown cell
+translated and keyed by its English first line so the two cannot drift silently.
+
 ## 2026-11-09 — Visual identity: the DNR brand manual applied to every visual surface
 
 The deck, its offline PDF, the Streamlit theme, the README imagery and the notebook charts

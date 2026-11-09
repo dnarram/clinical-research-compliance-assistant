@@ -45,7 +45,7 @@ md(r"""
 | 6 | The LangGraph agent and its trace | Agente LangGraph |
 | 7 | Conversation memory: referential follow-ups, thread isolation | Memoria |
 | 8 | Documented example conversations | ≥ 5 ejemplos |
-| 9 | Evaluation on a hand-written golden set | Calidad |
+| 9 | Evaluation: reviewed bilingual golden set, LLM judge, held-out set | Calidad |
 | 10 | Interactive chat cell | Celda de chat |
 | 11 | Limitations and next steps | Documentación |
 
@@ -56,7 +56,7 @@ md(r"""
 md(r"""
 ## 1 · Setup
 
-The API key is read from the environment (`.env` locally, *Secrets* on Colab) and never written in code. The cell prints its length as the only sanity check.
+The API key is read from the environment (`.env` locally, *Secrets* on Colab) and never written in code. The cell prints its length as the only sanity check. An optional `GEMINI_API_KEY_BACKUP` from a second Google Cloud project is a second daily quota: if a `[llm] daily quota hit; switching to backup key` line appears in an output below, that is the failover in `agent.py` doing its job, not an error.
 """)
 code(r"""
 import os, sys, subprocess, logging, time, json
@@ -216,7 +216,7 @@ show("What is the timeline for expedited reporting of fatal or life-threatening 
 show("¿Cuál es el plazo de notificación expeditiva de una reacción adversa inesperada mortal o potencialmente mortal?")
 show("What does the Declaration of Helsinki say about participants who cannot give consent?")
 show("Which GLP-1 drug is best for weight loss?")          # out of domain: clinical advice
-show("¿Cuál es la mejor receta de paella valenciana?")       # out of domain: unrelated
+_ = show("¿Cuál es la mejor receta de paella valenciana?")   # out of domain: unrelated
 """)
 code(r"""
 calibration = json.loads(settings.calibration_path.read_text(encoding="utf-8"))
@@ -384,7 +384,7 @@ md(r"""
 
 Six questions chosen to exercise different behaviours: a definition, a timeline, a cross-document synthesis, a responsibilities question, an out-of-domain refusal and an in-domain-*looking* question about a document that is **not** in the knowledge base. For each: what was asked, the answer, the sources, and a note on whether it is right (judged against the guideline text).
 
-> **Note (author):** these questions and the correctness notes are mine — the ground truth for an expert assistant has to come from someone who can check it. Edit `DEMO_QUESTIONS` to try others.
+> **Note (author):** the questions were drafted from the indexed guideline text with AI assistance, and I reviewed each one and its correctness note against the guideline — the ground truth for an expert assistant has to be checked by someone who can judge it. Edit `DEMO_QUESTIONS` to try others.
 """)
 code(r"""
 DEMO_QUESTIONS = [
@@ -432,7 +432,7 @@ for i, (kind, q, note) in enumerate(DEMO_QUESTIONS, 1):
 md(r"""
 ## 9 · Evaluation on the golden set
 
-`data/eval/golden.jsonl` holds 25 hand-checked questions, each in **English and Spanish** (50 runs): 19 in-domain with the document and section that answers them (two need two documents), 4 out-of-domain that must be refused, and 2 that *look* in-domain but ask about documents deliberately not indexed (21 CFR Part 50, EU CTR 536/2014). Every reference is checked against the indexed text by `tests/test_golden_consistency.py`.
+`data/eval/golden.jsonl` holds 25 questions drafted from the indexed text (with AI assistance) and reviewed by the author, each in **English and Spanish** (50 runs): 19 in-domain with the document and section that answers them (two need two documents), 4 out-of-domain that must be refused, and 2 that *look* in-domain but ask about documents deliberately not indexed (21 CFR Part 50, EU CTR 536/2014). Every reference is checked against the indexed text by `tests/test_golden_consistency.py`.
 
 Two layers of metrics:
 
@@ -458,7 +458,7 @@ import re
 
 def metric_table(path):
     rows = re.findall(r"^\| ([a-z_@0-9]+) \| ([^|]+) \|$", (PROJECT_ROOT / path).read_text(encoding="utf-8"), flags=re.M)
-    return {k: v.strip() for k, v in rows}
+    return {k: v.strip() for k, v in rows if k != "metric"}   # skip the table's header row
 
 before, after = metric_table("docs/evaluation_baseline_v3.md"), metric_table("docs/evaluation.md")
 lines = ["| metric | v3 baseline | v4 + expansion + routing |", "|---|---|---|"]
@@ -568,15 +568,19 @@ md(r"""
 **Limitations**
 - *Three documents.* Enough for GCP, expedited safety reporting and research ethics; questions about EU CTR 536/2014, GVP modules or FDA regulations are refused or answered only from what E6(R3) says.
 - *PDF extraction.* ICH tables (essential records, E6(R3) Appendix C) flatten into prose; the cleaner removes running headers and TOC lines but cannot restore table structure.
-- *Threshold is corpus-specific.* The calibrated refusal gate (0.69) was read off six in-domain and six out-of-domain queries; a bigger golden set would tighten it. Borderline in-domain questions phrased very differently from the text can be refused.
+- *Multi-hop questions.* "From the investigator to the regulator, who reports to whom and when?" needs E6(R3) §2.7.2, §3.13.2 and E2A together; one retrieval pass does not bring every hop, so the answer can miss a step (the only *incorrect* judge verdict of the v4 run, in Spanish — section 9.1).
+- *Document routing has a cost.* On the E6(R3)-vs-Helsinki comparison the E6(R3)-filtered slots pick §2.8.1 and the glossary rather than Principle 2.1 (the two section misses in section 9), although the generated answers still quote it.
+- *Threshold is corpus-specific.* The calibrated refusal gate (0.69) was read off six in-domain and six out-of-domain queries, one of which (the GLP-1 question) also appears in the golden set and the demo; it must be recalibrated when the corpus or the embedding model changes. Borderline in-domain questions phrased very differently from the text can be refused.
 - *Memory is per process.* `InMemorySaver` lives in RAM; the Streamlit app gives each browser session its own `thread_id`, but a restart forgets everything. A `SqliteSaver` would persist threads.
+- *Judge.* The judge is the answering model; the larger `gemini-3.5-flash` agreed with it on 78.9 % of 38 answers and was stricter, so absolute scores read optimistic (section 9.1).
 - *Free tier.* Embedding the corpus costs ~17 requests; each chat turn costs 1–2 LLM calls. The build is resumable and cached so the quota is never spent twice.
 
 **Next steps (in order of value)**
-1. Add EMA GVP Module VI and EU CTR 536/2014 (the ingestion is per-document and idempotent).
-2. Hybrid retrieval (BM25 + vectors) for exact section numbers and acronyms.
+1. Query decomposition: one retrieval per step of a multi-hop question.
+2. Add EMA GVP Module VI and EU CTR 536/2014 (the ingestion is per-document and idempotent; recalibrate the gate and extend the golden set).
 3. A faithfulness judge (answer vs. retrieved passages) — the current judge measures correctness against expert references.
-4. A `guard_input` node (prompt-injection and PII screening) before `rewrite_query`.
+4. Hybrid retrieval (BM25 + vectors) for exact section numbers and acronyms.
+5. A `guard_input` node (prompt-injection and PII screening) before `rewrite_query`, and a persistent checkpointer.
 """)
 
 nb = nbf.v4.new_notebook()

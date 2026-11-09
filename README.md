@@ -18,7 +18,7 @@ David Naranjo Ramírez
 
 > **Live demo:** <https://clinical-research-compliance-assistant-eaksdytvqzbpuvthkakvrd.streamlit.app> · **Notebook:** [`notebooks/compliance_assistant.ipynb`](notebooks/compliance_assistant.ipynb) · **Brief → evidence:** [`docs/rubric.md`](docs/rubric.md)
 >
-> **For non-technical readers (Spanish):** [project manual](docs/manual/manual_proyecto_es.md) ([PDF](docs/manual/manual_proyecto_es.pdf)) · **Full presentation text, basis for an academic article:** [discourse](docs/articulo/discurso_presentacion_es.md) ([PDF](docs/articulo/discurso_presentacion_es.pdf))
+> **For non-technical readers (Spanish):** [project manual](docs/manual/manual_proyecto_es.md) ([PDF](docs/manual/manual_proyecto_es.pdf)) · **Full presentation text, basis for an academic article:** [discourse](docs/articulo/discurso_presentacion_es.md) ([PDF](docs/articulo/discurso_presentacion_es.pdf)) · **Notebook, Spanish edition** (same code and outputs, prose translated): [`notebooks/compliance_assistant_es.ipynb`](notebooks/compliance_assistant_es.ipynb)
 
 **Stack:** Python 3.12 · Google Gemini (`gemini-3.5-flash-lite`, `gemini-embedding-2`) ·
 ChromaDB · LangGraph + LangChain · Jupyter · Streamlit · uv · pytest · ruff
@@ -367,6 +367,8 @@ Spanish question. Remaining weaknesses, reported rather than tuned away:
 ```
 notebooks/compliance_assistant.ipynb   the graded notebook (with outputs)
 notebooks/build_notebook.py            generates the notebook from Python source
+notebooks/compliance_assistant_es.ipynb Spanish edition: same code and outputs, prose translated
+notebooks/build_notebook_es.py         builds it from the executed English notebook
 app.py                                 Streamlit UI
 src/compliance_assistant/
   config.py       settings, API key loading (primary + backup)
