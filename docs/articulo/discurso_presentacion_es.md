@@ -11,8 +11,8 @@ IA, Evolve Academy · Noviembre de 2026.*
 
 ## Nota previa: cómo usar este documento
 
-El texto está escrito para ser **dicho**: frases completas, en primera persona y en el orden de
-las siete diapositivas. Cada parte corresponde además a una o varias secciones de un artículo con
+El texto está escrito para ser **dicho**, no leído: primera persona, tono cercano, frases cortas
+y en el orden de las siete diapositivas. Cada parte corresponde además a una o varias secciones de un artículo con
 estructura IMRaD (introducción, métodos, resultados y discusión); el anexo amplía lo que la
 exposición oral no puede desarrollar (preguntas de investigación, amenazas a la validez,
 resúmenes, referencias).
@@ -33,96 +33,99 @@ no cubre —objetivos formales, discusión y amenazas a la validez— están en 
 
 ## I. Apertura
 
-Buenos días. Presento un asistente de pregunta y respuesta para el cumplimiento normativo en
-investigación clínica. Responde sobre tres normas —la ICH E6(R3) de Buenas Prácticas Clínicas, la
-ICH E2A de notificación de seguridad y la Declaración de Helsinki—, en español o en inglés, cita
-literalmente documento, sección y página, recuerda la conversación y rechaza lo que sus fuentes no
-cubren. En ocho minutos: el problema, cómo está construido, el prompt, una demo y qué dicen los
-números.
+Buenos días. Voy a contaros cómo he construido un asistente que responde sobre normativa de
+investigación clínica y, sobre todo, por qué me fío de lo que dice. Conoce tres textos: la ICH
+E6(R3) de Buenas Prácticas Clínicas, la ICH E2A de notificación de seguridad y la Declaración de
+Helsinki. Contesta en español o en inglés, cita documento, sección y página, recuerda la
+conversación y, cuando no sabe, lo dice en lugar de inventar. En ocho minutos: el problema, cómo
+está hecho, el prompt, una demo y qué dicen los números.
 
 ## II. El problema
 
-Viernes, 17:50. Un monitor recibe el aviso de un acontecimiento adverso grave. ¿Es un SUSAR?
-¿Quién lo notifica, a quién, en qué plazo? La respuesta está repartida entre tres documentos,
-noventa páginas en inglés, y en este ámbito no basta con responder: hay que demostrar de dónde
-sale. En una inspección no vale «creo que eran quince días»; vale «E2A, sección III.B, página 7».
-La trazabilidad es el requisito.
+Imaginad un viernes, 17:50. Eres monitor de un ensayo clínico y te llega el aviso de un
+acontecimiento adverso grave. ¿Es un SUSAR? ¿Quién lo notifica, a quién, en cuánto tiempo? La
+respuesta existe, pero está repartida entre tres documentos, noventa páginas en inglés. Y aquí no
+basta con acertar: hay que demostrar de dónde sale. En una inspección, «creo que eran quince días» no vale. Vale «E2A, sección III.B, página 7». La
+trazabilidad no es un extra: es el requisito.
 
-Un asistente generalista no sirve, porque un modelo de lenguaje puede inventar un plazo con total
-aplomo. RAG ataca eso: buscar primero en documentos cerrados y responder solo con lo encontrado.
-Elegí este dominio porque cinco años de soporte a software de ensayos clínicos y la certificación
-ICH GCP me permiten juzgar si una respuesta es correcta.
+Un chatbot generalista no sirve, porque un modelo de lenguaje es capaz de inventarse un plazo con
+total seguridad. La idea de RAG es sencilla: buscar primero en documentos cerrados y contestar
+solo con lo encontrado. Elegí este dominio porque lo conozco: cinco años en soporte de software de
+ensayos clínicos y certificación ICH GCP me permiten distinguir una respuesta correcta de una que
+solo suena bien.
 
 ## III. Cómo está construido
 
-Tres documentos públicos, 801 fragmentos, cada uno con documento, sección y página. Los
-documentos se descargan de los editores y se verifican con su huella; Helsinki se indexó desde la
-web porque el PDF estropea los números de párrafo.
+Por dentro hay tres documentos públicos, troceados en 801 fragmentos, cada uno con su documento,
+su sección y su página. Los descargo de los editores y verifico su huella digital; Helsinki lo
+indexé desde la web, porque el PDF me estropeaba los números de párrafo.
 
-Descarté el agente que decide por sí mismo si busca: el enunciado exige usar la base en cada
-consulta. El agente es un grafo fijo de cuatro nodos: reescribir, recuperar, generar, rechazar. La
-reescritura convierte la pregunta, con el historial, en una pregunta autónoma en inglés: así
-resuelve «¿y para las demás?» y salva el idioma del corpus.
+Descarté el agente que decide si busca o no: el enunciado pide usar la base en cada consulta. Es
+un grafo fijo de cuatro nodos: reescribir, recuperar, generar o
+rechazar. El primero convierte tu pregunta, con el historial, en una pregunta completa y en
+inglés. Por eso entiende un «¿y para las demás?» y, de paso, busca en el idioma del corpus.
 
-La recuperación tiene cuatro etapas. Primero, la puerta: si la mejor puntuación no alcanza 0,69,
-la pregunta se rechaza con una plantilla sin llamar al modelo; lo que no llega al modelo no se
-puede inventar. Segundo, si la pregunta nombra documentos, las seis plazas se reparten entre
-ellos. Tercero, diversidad. Cuarto, la etapa más útil: cada fragmento se amplía a su sección
-completa. Nació de un fallo real: la definición de «grave» tiene cinco criterios, el fragmento
-traía dos y el modelo la daba por completa. No se arregla pidiéndoselo, porque no puede completar
-lo que no ve; se arregla entregándole la sección entera.
+La recuperación tiene cuatro etapas. La primera es una puerta: si la mejor coincidencia no llega
+a 0,69, la pregunta se rechaza con una plantilla y el modelo ni la ve. Lo que no llega al modelo
+no se puede inventar. Segunda: si preguntas por varios documentos, las seis plazas se reparten
+entre ellos. Tercera: variedad, para no traer seis veces lo mismo. Y la cuarta, la que más me ha
+enseñado: cada fragmento se amplía a su sección completa. Nació de un fallo real. La
+definición de «grave» tiene cinco criterios; el fragmento traía dos y el modelo la daba por
+completa. Pedirle que no lo hiciera no sirve: nadie completa lo que no ve. Hay que dárselo entero.
 
-Tres decisiones que defiendo: una caché de embeddings versionada, porque el plan gratuito permite
-mil textos al día y el corpus consume ochocientos; un umbral calibrado con datos, no fijado a ojo;
-y una memoria de diez mensajes que mantiene los pasajes fuera del historial.
+Tres decisiones más: una caché de embeddings versionada, porque el plan gratuito da mil textos al
+día y el corpus gasta ochocientos; un umbral calibrado con datos, no a ojo; y una memoria de diez
+mensajes que deja los pasajes fuera del historial.
 
 ## IV. El prompt
 
-Cuatro versiones documentadas. La primera, el prompt de clase, respondía bien pero sin citas. La
-tercera añadió citas por frase, atribución cuando las normas difieren y la política de idioma. Al
-leer todas las respuestas de la evaluación aparecieron tres fallos: una pregunta de varios pasos
-rechazada entera, su rechazo en español escrito en inglés y listas cortadas dadas por completas.
-La cuarta gradúa el rechazo, construye las cadenas paso a paso y exige listas completas. El
-principio: las restricciones duras van en el código; el criterio, en el prompt.
+El prompt tiene cuatro versiones documentadas. La primera, la de clase, respondía bien pero sin
+citas. La tercera añadió una cita por frase, atribución cuando las normas discrepan y política de
+idioma. Entonces leí una a una las respuestas de la evaluación y aparecieron tres fallos: una
+pregunta de varios pasos rechazada entera, un rechazo en español escrito en inglés y listas
+cortadas dadas por completas. La cuarta rechaza con matices, construye las cadenas paso a paso y
+exige listas completas. Mi principio: las restricciones duras van en el código; el criterio, en
+el prompt.
 
 ## V. La demostración
 
-Paso a la aplicación. Primera pregunta, en inglés, el plazo de una reacción mortal inesperada:
-fijaos en las citas y en el panel de fuentes: siete días naturales y ocho más para el informe
-completo. Segunda, en español y en el mismo hilo, «¿y para las demás reacciones graves e
-inesperadas?»: la reescritura resuelve la referencia y la respuesta vuelve en español con la
-norma citada en inglés: quince días. Memoria y política de idioma en un solo turno. Tercera, qué
-exigen la E6(R3) y Helsinki para incluir a quien no puede consentir: dos documentos nombrados, dos
-posturas contrastadas, cada una con su cita. Cuarta, qué fármaco GLP‑1 es mejor para adelgazar: es
-consejo clínico; la puerta la rechaza con 0,64 y el modelo nunca la ve.
+Os lo enseño. Primera pregunta, en inglés: el plazo para notificar una reacción adversa mortal e
+inesperada. Mirad las citas: siete días, y ocho más para completar el informe. Segunda, ahora en español y en el mismo hilo: «¿y para las demás
+reacciones graves e inesperadas?». No repito nada: la reescritura entiende la referencia y la
+respuesta llega en español, con la norma citada en inglés: quince días. Memoria e idioma, en un
+solo turno. Tercera: qué exigen la E6(R3) y Helsinki para incluir a quien no puede dar su
+consentimiento. Dos documentos, dos posturas contrastadas, cada una con su cita.
+Y cuarta, la trampa: qué fármaco GLP‑1 es mejor para adelgazar. Es consejo clínico, no está en sus
+fuentes. La puerta lo rechaza con un 0,64, por debajo del 0,69, y el modelo ni se entera.
 
 ## VI. La evaluación
 
-Antes de conectar el modelo comprobé la recuperación sola: doce consultas del dominio, en inglés y
-en español, y seis ajenas. Los dos grupos no se solapan y el umbral es el punto medio del hueco.
+¿Y cómo sé que funciona? Antes de conectar el modelo probé solo la recuperación: doce consultas
+del dominio, en inglés y en español, y seis ajenas. Los dos grupos no se solapan, y el umbral es
+el punto medio del hueco.
 
-Después, un golden set de 25 preguntas en ambos idiomas, cincuenta ejecuciones, y un juez que
-compara cada respuesta con una referencia. La versión final sube la corrección juzgada de 0,78 a
-0,95, con el mismo juez y la misma puntuación. Como diseñé las correcciones mirando ese conjunto,
-escribí doce preguntas nuevas tras congelar el sistema y las ejecuté una sola vez: de 0,95 a 1,00,
-sin regresión. Ninguna pregunta del dominio fue rechazada y todas las ajenas sí.
+Después, 25 preguntas en ambos idiomas, cincuenta ejecuciones y un juez que compara cada
+respuesta con una de referencia. Entre la versión tercera y la final, la corrección sube de 0,78
+a 0,95, con el mismo juez y la misma puntuación. Pero había ajustado el sistema mirando ese
+conjunto. Así que, ya congelado, escribí doce preguntas nuevas y las pasé una sola vez: de 0,95
+a 1,00, sin retrocesos. Ninguna pregunta del dominio fue rechazada; todas las ajenas, sí.
 
-Dos cautelas. El juez es el mismo modelo que responde, porque el grande permite veinte llamadas al
-día; en 38 respuestas coinciden en el 79 % y el grande es más estricto, así que las cifras
-absolutas son optimistas. Y queda un fallo que informo en lugar de ajustar: la cadena de
-notificación de varios saltos aún pierde un eslabón.
+Dos cautelas, que prefiero contaros yo. El juez es el mismo modelo que responde, porque el grande
+solo permite veinte llamadas al día; en 38 respuestas coinciden el 79 % y el grande es más
+estricto, así que las cifras absolutas son algo optimistas. Y queda un fallo que cuento en lugar
+de maquillar: la cadena de notificación de varios saltos todavía pierde un eslabón.
 
 ## VII. Límites, siguientes pasos y cierre
 
-Hoy el sistema conoce tres documentos, puede perder un salto en preguntas encadenadas, necesita
-recalibrarse si cambia el corpus y su memoria vive en el proceso. Siguientes pasos, por valor:
-descomponer las preguntas de varios saltos, añadir la farmacovigilancia europea y el Reglamento
-536/2014, y un juez de fidelidad.
+Los límites, con franqueza: solo conoce tres documentos, puede perder un salto en preguntas
+encadenadas, hay que recalibrarlo si cambia el corpus y su memoria vive en el proceso. Lo
+siguiente: descomponer las preguntas de varios saltos, añadir la
+farmacovigilancia europea y el Reglamento 536/2014, y un juez de fidelidad a las fuentes.
 
-Cierro con tres frases. Un asistente experto en un dominio regulado no se distingue por el modelo
-que usa, sino por lo que le impide equivocarse: una puerta calibrada antes de generar, pasajes
-completos y citas obligatorias. Los fallos que parecen de redacción suelen ser de recuperación. Y
-la fiabilidad se demuestra con preguntas que el autor no vio. Gracias.
+Me llevo tres ideas. Un asistente experto en un ámbito regulado no se distingue por el modelo que
+usa, sino por lo que le impide equivocarse: una puerta calibrada, pasajes completos y citas
+obligatorias. Muchos fallos que parecen de redacción son de recuperación. Y la fiabilidad se
+demuestra con preguntas que el autor no ha visto. Gracias. ¿Preguntas?
 
 ## Anexo. Del discurso al artículo
 
