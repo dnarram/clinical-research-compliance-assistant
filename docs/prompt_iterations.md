@@ -107,9 +107,13 @@ Judged correctness against expert references (LLM judge, same judge for both): g
 
 Not attributable to v4 alone: the comparison changes the prompt, context expansion and
 document routing together, because the failures they address appeared together. The
-notebook (section 5) shows v1 vs v4 on a single question; a prompt-only ablation (v4 with
-expansion and routing off) is a cheap next measurement with `scripts/03_evaluate.py
---prompt-version v4 --no-expand --no-routing --with-answers`.
+notebook (section 5) shows v1 vs v4 on one question and, for the multi-step reporting chain
+that the v3 baseline refused, the saved baseline answer next to v3 and v4 run live. In that
+live run (2026-11-10, one question, one run) the v3 prompt over today's retrieval no longer
+refused, which is consistent with the gain being shared between the prompt and the retrieval
+changes; it is one observation, not an ablation. A prompt-only ablation (v4 with expansion
+and routing off) is a cheap next measurement with `scripts/03_evaluate.py --prompt-version v4
+--no-expand --no-routing --with-answers`.
 
 **Known residue in v4 (2026-11-08):** the unrequested closing disclaimer persists, and once —
 while taking the README screenshot — it came back in Spanish after an English question,

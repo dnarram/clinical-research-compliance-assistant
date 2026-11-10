@@ -257,3 +257,16 @@ Not changed, by decision: the closing disclaimer the model adds despite the FORM
 (prompt change → full re-evaluation), the `_LONE_LETTER` cleaning heuristic (changing it
 re-chunks and re-embeds E6(R3)), and the sanity-set questions overlapping the app's example
 prompts (the gate is calibrated on them; the golden and held-out sets do not overlap them).
+
+## 2026-11-10 — Notebook polish before delivery
+
+- Intro gains a "Results at a glance" table (v3 baseline vs final: keyword coverage 0.815 → 0.974,
+  judged correct 0.776 → 0.947, held-out 0.950 → 1.000) and a link to the deployed app.
+- §5 now shows the case that justified v4: the saved v3 baseline refusal of the multi-step
+  reporting-chain question next to v3 and v4 run live. Re-running v3 over today's retrieval did
+  not refuse, so the notebook states that the gain is the combined effect of prompt and retrieval
+  changes (one run, not an ablation).
+- §6 graph drawn from the compiled graph in the DNR palette (`NodeStyles` + Mermaid theme
+  variables); `docs/img/graph.png` remains the offline fallback.
+- Only the two new cells and the graph cell were executed (3 LLM calls); every other output is the
+  previous run's. The Spanish edition was rebuilt with the new translations.

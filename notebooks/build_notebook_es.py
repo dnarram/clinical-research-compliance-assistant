@@ -49,13 +49,24 @@ tr(
 | 2 | Base de conocimiento: fuentes, preprocesado, troceado | Base de conocimiento |
 | 3 | Embeddings de Gemini + ChromaDB, construcción idempotente | Base de conocimiento |
 | 4 | Comprobación de la recuperación **antes** del agente (EN/ES, fuera de dominio, umbral calibrado) | RAG |
-| 5 | Prompt de sistema v4 y su justificación (v1 frente a v4 en la misma pregunta) | Ingeniería de prompts |
+| 5 | Prompt de sistema v4 y su justificación (v1 frente a v4, y la pregunta de varios pasos que rechazaba la v3) | Ingeniería de prompts |
 | 6 | El agente LangGraph y su traza | Agente LangGraph |
 | 7 | Memoria conversacional: preguntas referenciales, aislamiento de hilos | Memoria |
 | 8 | Conversaciones de ejemplo documentadas | ≥ 5 ejemplos |
 | 9 | Evaluación: golden set bilingüe revisado, juez LLM, conjunto held‑out | Calidad |
 | 10 | Celda de chat interactiva | Celda de chat |
 | 11 | Limitaciones y siguientes pasos | Documentación |
+
+**Resultados de un vistazo** (todo se recalcula o se muestra en las secciones siguientes; mismo golden set y misma puntuación en ambas columnas):
+
+| | Línea base (prompt v3) | **Final (prompt v4 + expansión a la sección + enrutado por documento)** |
+|---|---|---|
+| Cobertura de palabras clave de la respuesta, golden set (25 preguntas × EN/ES = 50 ejecuciones) | 0,815 | **0,974** |
+| Correcto según el juez, golden set (38 respuestas del dominio, juez LLM) | 0,776 | **0,947** |
+| Correcto según el juez, conjunto held‑out (12 preguntas nuevas, ejecutado una sola vez tras congelar el sistema) | 0,950 | **1,000** |
+| Preguntas fuera de dominio rechazadas / preguntas del dominio rechazadas por error | 100 % / 0 | 100 % / 0 |
+
+Base de conocimiento: 3 documentos, 801 fragmentos, umbral de rechazo 0,6885 calibrado con datos (§4). Un fallo se informa en lugar de ajustarlo: la pregunta de varios saltos sobre la cadena de notificación aún pierde un eslabón (§9, §11). El mismo agente funciona como aplicación pública de Streamlit: <https://clinical-research-compliance-assistant-eaksdytvqzbpuvthkakvrd.streamlit.app>.
 
 **Cómo ejecutarlo.** En local: `uv sync --extra dev`, poner `GEMINI_API_KEY=...` en `.env` y lanzar `uv run jupyter lab notebooks/`. En Google Colab: ejecutar la celda de preparación (clona el repositorio y lo instala) y añadir `GEMINI_API_KEY` en *Secrets*. La caché de embeddings está en el repositorio, así que la base de conocimiento se reconstruye en segundos **sin** llamar a la API de embeddings; solo las preguntas del chat llaman a Gemini.
 """,
@@ -144,6 +155,18 @@ El LLM recibe además una línea determinista `Reply in English.` / `Responde en
 """,
 )
 
+tr(
+    "**The question the v3 baseline refused.** The golden-set run of the v3 baseline refused a multi-step question outright — \"who reports a serious adverse reaction to whom, and within which timelines\" — although the answer is spread over E6(R3) and E2A. The saved baseline answer (`data/eval/answers_baseline_v3.jsonl`, produced before the v4 changes) is shown first, then v3 and v4 run live on today's retrieval. The point to check: does the agent answer the parts the passages cover instead of giving up?",
+    r"""
+**La pregunta que rechazó la línea base v3.** En la ejecución del golden set, la línea base v3 rechazó por completo una pregunta de varios pasos —«quién notifica una reacción adversa grave a quién y en qué plazos»— aunque la respuesta está repartida entre E6(R3) y E2A. Primero se muestra la respuesta guardada de la línea base (`data/eval/answers_baseline_v3.jsonl`, producida antes de los cambios de la v4); después, la v3 y la v4 ejecutadas en directo con la recuperación actual. Lo que hay que comprobar: ¿responde el agente a las partes que cubren los pasajes en lugar de rendirse?
+""",
+)
+tr(
+    "Read the three answers together. The saved v3 baseline says \"I could not find this in my knowledge base\" although the passages hold the investigator → sponsor → authority chain; v4 builds it step by step with a citation on each step. Re-running the v3 prompt over **today's** retrieval does not necessarily refuse any more, because section-level expansion (4.1) also changed what the model sees: the improvement measured in §9 is the **combined** effect of the prompt and the retrieval changes, not of the prompt alone. That is why §9 scores the whole system and not one component.",
+    r"""
+Lea las tres respuestas juntas. La línea base v3 guardada dice «I could not find this in my knowledge base» aunque los pasajes contienen la cadena investigador → promotor → autoridad; la v4 la construye paso a paso con una cita en cada paso. Volver a ejecutar el prompt v3 con la recuperación **actual** ya no rechaza necesariamente, porque la expansión a la sección (4.1) también cambió lo que ve el modelo: la mejora medida en la §9 es el efecto **combinado** del prompt y de los cambios de recuperación, no solo del prompt. Por eso la §9 puntúa el sistema completo y no un componente.
+""",
+)
 tr(
     "**v1 vs v4 on the same question.** v1 is the bare \"answer from the documents\" prompt from the class notebook. Compare attribution and structure.",
     r"""

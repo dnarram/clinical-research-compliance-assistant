@@ -41,13 +41,24 @@ md(r"""
 | 2 | Knowledge base: sources, pre-processing, chunking | Base de conocimiento |
 | 3 | Gemini embeddings + ChromaDB, idempotent build | Base de conocimiento |
 | 4 | Retrieval sanity check **before** the agent (EN/ES, out-of-domain, calibrated threshold) | RAG |
-| 5 | System prompt v4 and why (v1 vs v4 on the same question) | Ingeniería de prompts |
+| 5 | System prompt v4 and why (v1 vs v4, and the multi-step question v3 refused) | Ingeniería de prompts |
 | 6 | The LangGraph agent and its trace | Agente LangGraph |
 | 7 | Conversation memory: referential follow-ups, thread isolation | Memoria |
 | 8 | Documented example conversations | ≥ 5 ejemplos |
 | 9 | Evaluation: reviewed bilingual golden set, LLM judge, held-out set | Calidad |
 | 10 | Interactive chat cell | Celda de chat |
 | 11 | Limitations and next steps | Documentación |
+
+**Results at a glance** (all recomputed or shown in the sections below; the same golden set and the same scoring for both columns):
+
+| | Baseline (prompt v3) | **Final (prompt v4 + section expansion + document routing)** |
+|---|---|---|
+| Answer keyword coverage, golden set (25 questions × EN/ES = 50 runs) | 0.815 | **0.974** |
+| Judged correct, golden set (38 in-domain answers, LLM judge) | 0.776 | **0.947** |
+| Judged correct, held-out set (12 new questions, run once after freezing the system) | 0.950 | **1.000** |
+| Out-of-domain questions refused / in-domain questions wrongly refused | 100 % / 0 | 100 % / 0 |
+
+Knowledge base: 3 documents, 801 chunks, refusal gate 0.6885 calibrated on data (§4). One failure is reported rather than tuned away: the multi-hop reporting-chain question still loses a link (§9, §11). The same agent runs as a public Streamlit app: <https://clinical-research-compliance-assistant-eaksdytvqzbpuvthkakvrd.streamlit.app>.
 
 **How to run.** Locally: `uv sync --extra dev`, put `GEMINI_API_KEY=...` in `.env`, then `uv run jupyter lab notebooks/`. On Google Colab: run the setup cell below (it clones the repo and installs it) and add `GEMINI_API_KEY` to Colab *Secrets*. The embedding cache is committed, so the knowledge base is rebuilt locally in seconds **without** calling the embeddings API; only the chat questions call Gemini.
 """)
@@ -293,6 +304,31 @@ for version in ("v1", "v4"):
     time.sleep(2)
 """)
 
+md(r"""
+**The question the v3 baseline refused.** The golden-set run of the v3 baseline refused a multi-step question outright — "who reports a serious adverse reaction to whom, and within which timelines" — although the answer is spread over E6(R3) and E2A. The saved baseline answer (`data/eval/answers_baseline_v3.jsonl`, produced before the v4 changes) is shown first, then v3 and v4 run live on today's retrieval. The point to check: does the agent answer the parts the passages cover instead of giving up?
+""")
+code(r"""
+golden = {row["id"]: row for row in map(json.loads, (PROJECT_ROOT / "data/eval/golden.jsonl").read_text().splitlines())}
+multi = golden["multi_safety_reporting_chain"]["question_en"]
+saved = next(row for row in map(json.loads, (PROJECT_ROOT / "data/eval/answers_baseline_v3.jsonl").read_text().splitlines())
+             if row["id"] == "multi_safety_reporting_chain" and row["lang"] == "en")
+
+def clip(text, n=900):
+    return text if len(text) <= n else text[:n].rstrip() + " […]"
+
+print("QUESTION:", multi)
+print("\n==================== v3 baseline, as saved before the v4 changes (keyword coverage %.2f) ====================" % saved["keyword_coverage"])
+print(clip(saved["answer"]))
+for version in ("v3", "v4"):
+    answer = Assistant(llm, vectorstore, load_settings(prompt_version=version)).ask(multi)
+    print(f"\n==================== prompt {version}, live (grounded={answer.grounded}) ====================")
+    print(clip(answer.text))
+    time.sleep(2)
+""")
+md(r"""
+Read the three answers together. The saved v3 baseline says "I could not find this in my knowledge base" although the passages hold the investigator → sponsor → authority chain; v4 builds it step by step with a citation on each step. Re-running the v3 prompt over **today's** retrieval does not necessarily refuse any more, because section-level expansion (4.1) also changed what the model sees: the improvement measured in §9 is the **combined** effect of the prompt and the retrieval changes, not of the prompt alone. That is why §9 scores the whole system and not one component.
+""")
+
 # 6 ---------------------------------------------------------------------------------------
 md(r"""
 ## 6 · The LangGraph agent
@@ -314,11 +350,21 @@ State keeps `context`/`sources` *outside* `messages`, so the persisted conversat
 """)
 code(r"""
 from IPython.display import Image, display
+from langchain_core.runnables.graph import NodeStyles
 
 assistant = Assistant(llm, vectorstore, settings)
 graph = assistant.graph
 try:
-    display(Image(graph.get_graph().draw_mermaid_png()))
+    # Drawn from the compiled graph itself, in the project palette (navy nodes, copper edges).
+    display(Image(graph.get_graph().draw_mermaid_png(
+        node_colors=NodeStyles(
+            default="fill:#FAFAFA,stroke:#162B43,stroke-width:2px,color:#162B43",
+            first="fill:#E2E8F0,stroke:#64748B,color:#162B43",
+            last="fill:#E2E8F0,stroke:#64748B,color:#162B43"),
+        frontmatter_config={"config": {"theme": "base", "themeVariables": {
+            "fontFamily": "Inter, Arial, sans-serif", "lineColor": "#B95319",
+            "primaryColor": "#FAFAFA", "primaryTextColor": "#162B43", "primaryBorderColor": "#162B43"}}},
+        background_color="#FFFFFF")))
 except Exception as exc:  # the PNG renderer needs network access (mermaid.ink)
     print(f"(live PNG rendering unavailable: {type(exc).__name__}; showing docs/img/graph.png, rendered from this graph)")
     display(Image(str(PROJECT_ROOT / "docs" / "img" / "graph.png")))
