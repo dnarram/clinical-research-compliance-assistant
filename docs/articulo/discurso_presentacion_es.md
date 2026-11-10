@@ -1,9 +1,9 @@
 # Un asistente de cumplimiento normativo para la investigación clínica con recuperación aumentada, rechazo calibrado y evaluación con conjunto reservado
 
 **Discurso completo de la presentación y base para un artículo académico.** Texto íntegro, en
-prosa continua, de lo que la exposición oral cubre, calibrado para leerse en unos diez minutos a
-ritmo tranquilo (partes I–XII, sin contar esta nota ni el anexo). Las siete diapositivas lo
-acompañan; el guion con tiempos está en `docs/notas_orador_es.md`. Cada cifra procede de un archivo del repositorio, indicado en el
+prosa continua, de lo que la exposición oral cubre, calibrado para durar como máximo ocho minutos a
+ritmo tranquilo (partes I–VII, una por diapositiva, sin contar esta nota ni el anexo). El guion
+con tiempos está en `docs/notas_orador_es.md`. Cada cifra procede de un archivo del repositorio, indicado en el
 anexo, para que el paso a artículo no requiera reconstruir nada.
 
 *David Naranjo Ramírez · Proyecto final del módulo de IA Generativa · Máster en Data Science &
@@ -12,155 +12,117 @@ IA, Evolve Academy · Noviembre de 2026.*
 ## Nota previa: cómo usar este documento
 
 El texto está escrito para ser **dicho**: frases completas, en primera persona y en el orden de
-la presentación. Al mismo tiempo, cada parte corresponde a una sección de un artículo con
-estructura IMRaD (introducción, métodos, resultados y discusión). La tabla siguiente muestra la
-correspondencia.
+las siete diapositivas. Cada parte corresponde además a una o varias secciones de un artículo con
+estructura IMRaD (introducción, métodos, resultados y discusión); el anexo amplía lo que la
+exposición oral no puede desarrollar (preguntas de investigación, amenazas a la validez,
+resúmenes, referencias).
 
 | Parte del discurso | Diapositiva | Sección del artículo |
 |---|---|---|
 | I. Apertura | 1 · Portada | Título y resumen |
 | II. El problema | 2 · El problema | Introducción y motivación |
-| III. Objetivos y preguntas | — | Introducción: objetivos y preguntas de investigación |
-| IV. El corpus | 3 · Arquitectura | Métodos: corpus y preprocesado |
-| V. La arquitectura | 3 · Arquitectura | Métodos: sistema |
-| VI. El prompt | 4 · El system prompt | Métodos: diseño de instrucciones |
-| VII. La demostración | 5 · Demo en vivo | Resultados: ejemplos cualitativos |
-| VIII. Cómo evalué | 6 · Evaluación | Métodos: protocolo de evaluación |
-| IX. Qué salió | 6 · Evaluación | Resultados |
-| X. Qué significa y qué no | — | Discusión y amenazas a la validez |
-| XI. Límites y siguientes pasos | 7 · Límites | Limitaciones y trabajo futuro |
-| XII. Cierre | 7 | Conclusiones |
+| III. Cómo está construido | 3 · Arquitectura | Métodos: corpus y sistema |
+| IV. El prompt | 4 · El system prompt | Métodos: diseño de instrucciones |
+| V. La demostración | 5 · Demo en vivo | Resultados: ejemplos cualitativos |
+| VI. La evaluación | 6 · Evaluación | Métodos de evaluación y resultados |
+| VII. Límites, siguientes pasos y cierre | 7 · Límites | Limitaciones, trabajo futuro y conclusiones |
 
-Leído en voz alta a ritmo tranquilo, el cuerpo del discurso dura unos diez minutos. Para la
-versión de ocho, se omiten las partes III y X, cuyo contenido está pensado para el artículo.
+Leído en voz alta a ritmo tranquilo, el cuerpo dura unos ocho minutos (unas mil palabras); la
+demo en vivo de la parte V añade el tiempo de las cuatro preguntas. Las partes que la exposición
+no cubre —objetivos formales, discusión y amenazas a la validez— están en el anexo.
 
 ## I. Apertura
 
 Buenos días. Presento un asistente de pregunta y respuesta para el cumplimiento normativo en
-investigación clínica, sobre tres normas: la ICH E6(R3) de Buenas Prácticas Clínicas, la ICH E2A de
-notificación expeditiva de seguridad y la Declaración de Helsinki de 2024. Responde en español o en
-inglés, cita literalmente documento, sección y página, recuerda la conversación y rechaza lo que
-sus fuentes no cubren. Es un sistema RAG con Gemini, ChromaDB y LangGraph, y quiero contar tres
-ideas: la decisión de no responder se toma antes de que intervenga el modelo; muchos fallos que
-parecen de redacción son de recuperación; y la fiabilidad se demuestra con preguntas que el autor
-no vio.
+investigación clínica. Responde sobre tres normas —la ICH E6(R3) de Buenas Prácticas Clínicas, la
+ICH E2A de notificación de seguridad y la Declaración de Helsinki—, en español o en inglés, cita
+literalmente documento, sección y página, recuerda la conversación y rechaza lo que sus fuentes no
+cubren. En ocho minutos: el problema, cómo está construido, el prompt, una demo y qué dicen los
+números.
 
 ## II. El problema
 
 Viernes, 17:50. Un monitor recibe el aviso de un acontecimiento adverso grave. ¿Es un SUSAR?
-¿Quién lo notifica, a quién, en qué plazo? La respuesta está repartida entre la E2A, la E6(R3) y
-Helsinki: noventa páginas en inglés. Y en este ámbito no basta con responder: hay que demostrar de
-dónde sale. En una inspección no vale «creo que eran quince días»; vale «E2A, sección III.B, página
-7». La trazabilidad es el requisito.
+¿Quién lo notifica, a quién, en qué plazo? La respuesta está repartida entre tres documentos,
+noventa páginas en inglés, y en este ámbito no basta con responder: hay que demostrar de dónde
+sale. En una inspección no vale «creo que eran quince días»; vale «E2A, sección III.B, página 7».
+La trazabilidad es el requisito.
 
-Un asistente generalista no sirve: un modelo de lenguaje genera texto plausible y a veces falso
-con aplomo, y un plazo inventado es el peor fallo porque parece correcto. RAG ataca eso: buscar
-primero en documentos cerrados y responder solo con lo encontrado. Elegí este dominio porque cinco
-años de soporte a software de ensayos clínicos y la certificación ICH GCP me permiten juzgar si una
-respuesta es correcta; sin eso, evaluar un asistente experto se reduce a comprobar que suena bien.
+Un asistente generalista no sirve, porque un modelo de lenguaje puede inventar un plazo con total
+aplomo. RAG ataca eso: buscar primero en documentos cerrados y responder solo con lo encontrado.
+Elegí este dominio porque cinco años de soporte a software de ensayos clínicos y la certificación
+ICH GCP me permiten juzgar si una respuesta es correcta.
 
-## III. Objetivos y preguntas de investigación
+## III. Cómo está construido
 
-El objetivo fue cumplir el enunciado y demostrar con datos que el sistema es fiable. Cuatro
-preguntas: ¿puede un RAG con modelos ligeros citar a nivel de sección y página? ¿Separa un umbral
-calibrado, aplicado antes de generar, lo que la base cubre de lo que no? ¿Los fallos se corrigen
-mejor en el prompt o en la recuperación? ¿Y se mantienen las mejoras en preguntas nuevas?
+Tres documentos públicos, 801 fragmentos, cada uno con documento, sección y página. Los
+documentos se descargan de los editores y se verifican con su huella; Helsinki se indexó desde la
+web porque el PDF estropea los números de párrafo.
 
-## IV. El corpus
+Descarté el agente que decide por sí mismo si busca: el enunciado exige usar la base en cada
+consulta. El agente es un grafo fijo de cuatro nodos: reescribir, recuperar, generar, rechazar. La
+reescritura convierte la pregunta, con el historial, en una pregunta autónoma en inglés: así
+resuelve «¿y para las demás?» y salva el idioma del corpus.
 
-Tres documentos públicos, 801 fragmentos de 500 caracteres, cada uno con documento, sección y
-página. El preprocesado condiciona las citas: elimino cabeceras repetidas, reúno palabras partidas
-y detecto el número de sección. Helsinki se indexó desde la web porque el PDF estropea los números
-de párrafo: la fuente se elige por la calidad del texto. Los documentos se descargan de los
-editores y se verifican con su huella SHA‑256.
+La recuperación tiene cuatro etapas. Primero, la puerta: si la mejor puntuación no alcanza 0,69,
+la pregunta se rechaza con una plantilla sin llamar al modelo; lo que no llega al modelo no se
+puede inventar. Segundo, si la pregunta nombra documentos, las seis plazas se reparten entre
+ellos. Tercero, diversidad. Cuarto, la etapa más útil: cada fragmento se amplía a su sección
+completa. Nació de un fallo real: la definición de «grave» tiene cinco criterios, el fragmento
+traía dos y el modelo la daba por completa. No se arregla pidiéndoselo, porque no puede completar
+lo que no ve; se arregla entregándole la sección entera.
 
-## V. La arquitectura
+Tres decisiones que defiendo: una caché de embeddings versionada, porque el plan gratuito permite
+mil textos al día y el corpus consume ochocientos; un umbral calibrado con datos, no fijado a ojo;
+y una memoria de diez mensajes que mantiene los pasajes fuera del historial.
 
-Descarté el agente que decide si busca: el enunciado exige usar la base en cada consulta y una
-topología fija se prueba con facilidad. El agente es un grafo explícito de cuatro nodos: reescribir,
-recuperar, generar, rechazar. El modelo nunca decide si se consulta la base.
-
-La reescritura convierte la pregunta, con el historial, en una pregunta autónoma en inglés: así
-resuelve «¿y para las demás?» y salva el idioma del corpus. El idioma de la respuesta se impone con
-una línea determinista.
-
-La recuperación tiene cuatro etapas. Primero la puerta: si la mejor puntuación no alcanza 0,69,
-la pregunta va a un rechazo con plantilla sin llamar al modelo; lo que no llega al modelo no se
-puede inventar. Segundo, el enrutado: si la pregunta nombra documentos, las seis plazas se reparten
-entre ellos, siempre después de la puerta. Tercero, diversidad con relevancia marginal máxima.
-Cuarto, la etapa más útil: cada fragmento se amplía a su sección completa. Nació de un fallo real:
-la definición de «grave» tiene cinco criterios, el fragmento traía dos y el modelo la daba por
-completa. No se arregla pidiéndoselo, porque no puede completar lo que no ve; se arregla
-entregándole la sección entera.
-
-La memoria es un checkpointer por hilo: al modelo llegan los diez últimos mensajes. Y una decisión
-de ingeniería lo sostiene todo: el plan gratuito permite mil textos embebidos al día y el corpus
-consume ochocientos, así que la fuente de verdad es una caché de embeddings versionada y Chroma se
-reconstruye en segundos sin llamadas. Todo con 77 pruebas sin red y desplegado en Streamlit Cloud.
-
-## VI. El prompt de sistema
+## IV. El prompt
 
 Cuatro versiones documentadas. La primera, el prompt de clase, respondía bien pero sin citas. La
-tercera añadió citas por frase, atribución cuando las normas difieren y la política de idioma; al
+tercera añadió citas por frase, atribución cuando las normas difieren y la política de idioma. Al
 leer todas las respuestas de la evaluación aparecieron tres fallos: una pregunta de varios pasos
-rechazada entera, su rechazo en español escrito en inglés y listas cortadas dadas por completas. La
-cuarta gradúa el rechazo, construye las cadenas paso a paso y exige listas completas. El principio:
-las restricciones duras van en el código; el criterio, en el prompt.
+rechazada entera, su rechazo en español escrito en inglés y listas cortadas dadas por completas.
+La cuarta gradúa el rechazo, construye las cadenas paso a paso y exige listas completas. El
+principio: las restricciones duras van en el código; el criterio, en el prompt.
 
-## VII. La demostración
+## V. La demostración
 
-Cuatro preguntas. Primera, en inglés, el plazo de una reacción mortal inesperada: cita literal de
-la E2A, siete días y ocho más para el informe completo, con sección y página en el panel de
-fuentes. Segunda, en español y en el mismo hilo, «¿y para las demás?»: la reescritura resuelve la
-referencia y la respuesta vuelve en español con la norma citada en inglés: quince días. Tercera, qué
+Paso a la aplicación. Primera pregunta, en inglés, el plazo de una reacción mortal inesperada:
+fijaos en las citas y en el panel de fuentes: siete días naturales y ocho más para el informe
+completo. Segunda, en español y en el mismo hilo, «¿y para las demás reacciones graves e
+inesperadas?»: la reescritura resuelve la referencia y la respuesta vuelve en español con la
+norma citada en inglés: quince días. Memoria y política de idioma en un solo turno. Tercera, qué
 exigen la E6(R3) y Helsinki para incluir a quien no puede consentir: dos documentos nombrados, dos
-posturas contrastadas, cada una con su cita. Cuarta, qué fármaco GLP‑1 es mejor para adelgazar: la
-puerta la rechaza con 0,64 y el modelo nunca la ve.
+posturas contrastadas, cada una con su cita. Cuarta, qué fármaco GLP‑1 es mejor para adelgazar: es
+consejo clínico; la puerta la rechaza con 0,64 y el modelo nunca la ve.
 
-## VIII. Cómo evalué
+## VI. La evaluación
 
-Cuatro capas. Primera, la calibración antes de conectar el modelo: seis preguntas del dominio en
-dos idiomas y seis ajenas; puntuaron entre 0,75 y 0,88 frente a 0,52 y 0,63, y el umbral es el
-punto medio del hueco. Segunda, un golden set de 25 preguntas en ambos idiomas, 50 ejecuciones,
-con preguntas del dominio, ajenas y sobre normas no indexadas; redactadas con asistencia de IA a
-partir del texto verificado y revisadas por mí. Tercera, un juez: un modelo compara cada respuesta
-con una referencia y la califica. El juez grande solo permite veinte peticiones al día, así que usé
-el modelo ligero y medí el sesgo: 79 % de acuerdo en 38 respuestas, con el grande más estricto.
-Cuarta, un conjunto reservado de doce preguntas nuevas, escritas tras congelar el sistema y
-ejecutadas una sola vez.
+Antes de conectar el modelo comprobé la recuperación sola: doce consultas del dominio, en inglés y
+en español, y seis ajenas. Los dos grupos no se solapan y el umbral es el punto medio del hueco.
 
-## IX. Qué salió
+Después, un golden set de 25 preguntas en ambos idiomas, cincuenta ejecuciones, y un juez que
+compara cada respuesta con una referencia. La versión final sube la corrección juzgada de 0,78 a
+0,95, con el mismo juez y la misma puntuación. Como diseñé las correcciones mirando ese conjunto,
+escribí doce preguntas nuevas tras congelar el sistema y las ejecuté una sola vez: de 0,95 a 1,00,
+sin regresión. Ninguna pregunta del dominio fue rechazada y todas las ajenas sí.
 
-Con las mismas preguntas y la misma puntuación, la corrección juzgada sube de 0,78 a 0,95 en el
-golden set y de 0,95 a 1,00 en el reservado; la cobertura de palabras clave, de 0,82 a 0,97. El
-acierto de documento se mantuvo en 1,0, ninguna pregunta del dominio fue rechazada y todas las
-ajenas sí. El reservado mejora menos porque sus preguntas caben en una sola sección; lo relevante
-es que no hubo regresión. Quedan dos fallos que informo en lugar de ajustar: la cadena de varios
-saltos aún pierde un eslabón, la única respuesta incorrecta de la versión final, y el enrutado
-elige a veces secciones generales en lugar del principio exacto.
+Dos cautelas. El juez es el mismo modelo que responde, porque el grande permite veinte llamadas al
+día; en 38 respuestas coinciden en el 79 % y el grande es más estricto, así que las cifras
+absolutas son optimistas. Y queda un fallo que informo en lugar de ajustar: la cadena de
+notificación de varios saltos aún pierde un eslabón.
 
-## X. Qué significa y qué no
+## VII. Límites, siguientes pasos y cierre
 
-Un RAG con modelos ligeros puede citar con precisión; la clave es lo que se le entrega, no el
-tamaño del modelo. La puerta separó el dominio de lo ajeno, pero el margen es de centésimas y no
-basta sola: las normas no indexadas la superan y dependen del prompt. Y las limitaciones cuentan:
-diseñé y evalué yo mismo, el juez es el modelo que responde, se mide corrección y no fidelidad, y
-con 38 y 20 respuestas no hay intervalos de confianza.
-
-## XI. Límites y siguientes pasos
-
-Tres documentos, un posible salto perdido en preguntas encadenadas, un umbral que hay que
-recalibrar si cambia el corpus y una memoria que vive en el proceso. Siguientes pasos, por valor:
+Hoy el sistema conoce tres documentos, puede perder un salto en preguntas encadenadas, necesita
+recalibrarse si cambia el corpus y su memoria vive en el proceso. Siguientes pasos, por valor:
 descomponer las preguntas de varios saltos, añadir la farmacovigilancia europea y el Reglamento
-536/2014, un juez de fidelidad, recuperación híbrida y memoria persistente.
+536/2014, y un juez de fidelidad.
 
-## XII. Cierre
-
-Un asistente experto en un dominio regulado no se distingue por el modelo que usa, sino por lo que
-le impide equivocarse: una puerta calibrada antes de generar, pasajes completos y citas
-obligatorias. Los fallos que parecen de redacción suelen ser de recuperación. Y la fiabilidad se
-demuestra con preguntas que el autor no vio y con un informe honesto de lo que sigue fallando.
-Gracias.
+Cierro con tres frases. Un asistente experto en un dominio regulado no se distingue por el modelo
+que usa, sino por lo que le impide equivocarse: una puerta calibrada antes de generar, pasajes
+completos y citas obligatorias. Los fallos que parecen de redacción suelen ser de recuperación. Y
+la fiabilidad se demuestra con preguntas que el autor no vio. Gracias.
 
 ## Anexo. Del discurso al artículo
 
@@ -228,16 +190,16 @@ cumplimiento normativo; evaluación de modelos de lenguaje; LLM como juez.
 
 | Sección del artículo | Contenido | Partes del discurso |
 |---|---|---|
-| 1. Introducción | Problema, trazabilidad, alucinación, preguntas de investigación | II, III |
+| 1. Introducción | Problema, trazabilidad, alucinación, preguntas de investigación | II + anexo |
 | 2. Trabajo relacionado | RAG, abstención, MMR, evaluación de RAG, LLM como juez, recuperación multisalto | (por redactar) |
-| 3. Corpus | Fuentes, preprocesado, troceado, procedencia | IV |
-| 4. Sistema | Grafo, reescritura e idioma, recuperación en cuatro etapas, memoria, ingeniería | V |
-| 5. Diseño de instrucciones | Versiones v1–v4 y observaciones | VI |
-| 6. Evaluación | Calibración, conjunto de referencia, juez, conjunto reservado, métricas | VIII |
-| 7. Resultados | Tablas, ejemplos cualitativos, análisis de errores | VII, IX |
-| 8. Discusión | Respuesta a las preguntas, amenazas a la validez | X |
-| 9. Limitaciones y trabajo futuro | | XI |
-| 10. Conclusiones | | XII |
+| 3. Corpus | Fuentes, preprocesado, troceado, procedencia | III |
+| 4. Sistema | Grafo, reescritura e idioma, recuperación en cuatro etapas, memoria, ingeniería | III |
+| 5. Diseño de instrucciones | Versiones v1–v4 y observaciones | IV |
+| 6. Evaluación | Calibración, conjunto de referencia, juez, conjunto reservado, métricas | VI |
+| 7. Resultados | Tablas, ejemplos cualitativos, análisis de errores | V, VI |
+| 8. Discusión | Respuesta a las preguntas, amenazas a la validez | anexo |
+| 9. Limitaciones y trabajo futuro | | VII |
+| 10. Conclusiones | | VII |
 
 ### Tablas y figuras disponibles
 
